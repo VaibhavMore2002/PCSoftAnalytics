@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
+import { useTheme } from "./ThemeContext.jsx";
 
 // ── Stripe accent colors per theme ─────────────────────────
 const STRIPES = {
@@ -149,13 +150,7 @@ function SectionLabel({ children, right }) {
 
 // ── Main ───────────────────────────────────────────────────
 export default function PCSoftAnalytics() {
-  const [isDark, setIsDark] = useState(() => {
-    try {
-      const saved = localStorage.getItem("pcsoft-isDark");
-      if (saved !== null) return JSON.parse(saved);
-    } catch {}
-    return false;
-  });
+  const { isDark } = useTheme();
   const [activeNav, setActiveNav] = useState("Home");
   const [dsSearch, setDsSearch] = useState("");
   const [priorityDashboards, setPriorityDashboards] = useState(() => {
@@ -165,12 +160,6 @@ export default function PCSoftAnalytics() {
   const [dashboardFilter, setDashboardFilter] = useState("All Dashboards");
 
   const navigate = useNavigate();
-
-  // Sync dark class on <html>
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDark);
-    try { localStorage.setItem("pcsoft-isDark", JSON.stringify(isDark)); } catch {}
-  }, [isDark]);
 
   // Listen for priority dashboard changes from the Dashboards page
   useEffect(() => {
@@ -211,8 +200,6 @@ export default function PCSoftAnalytics() {
         onNavClick={handleNavClick}
         activeNav={activeNav}
         logo={logo}
-        isDark={isDark}
-        onToggleDark={() => setIsDark(!isDark)}
       />
 
       {/* ── Main content ─────────────────────────────── */}

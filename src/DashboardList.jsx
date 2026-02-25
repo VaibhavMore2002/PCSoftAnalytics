@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
+import { useTheme } from "./ThemeContext.jsx";
 
 // ── Sample dashboard data ───────────────────────────────────
 const DASHBOARDS = [
@@ -75,13 +76,7 @@ function StatusBadge({ status }) {
 
 // ── Main ────────────────────────────────────────────────────
 export default function DashboardsPage() {
-  const [isDark, setIsDark] = useState(() => {
-    try {
-      const saved = localStorage.getItem("pcsoft-isDark");
-      if (saved !== null) return JSON.parse(saved);
-    } catch {}
-    return false;
-  });
+  const { isDark } = useTheme();
   const [activeNav, setActiveNav] = useState("Dashboards");
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("All");
@@ -90,11 +85,6 @@ export default function DashboardsPage() {
     catch { return []; }
   });
   const navigate = useNavigate();
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDark);
-    try { localStorage.setItem("pcsoft-isDark", JSON.stringify(isDark)); } catch {}
-  }, [isDark]);
 
   useEffect(() => {
     localStorage.setItem("pcsoft-priority-dashboards", JSON.stringify(priorityDashboards));
@@ -135,8 +125,6 @@ export default function DashboardsPage() {
         onNavClick={handleNavClick}
         activeNav={activeNav}
         logo={logo}
-        isDark={isDark}
-        onToggleDark={() => setIsDark(!isDark)}
       />
 
       {/* ── Main content ─────────────────────────────── */}

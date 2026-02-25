@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "./ThemeContext.jsx";
 
 // ── Icons ──────────────────────────────────────────────────
 function Icon({ name, size = 18, color = "currentColor" }) {
@@ -139,11 +141,18 @@ export default function Sidebar({
   onNavClick,
   activeNav,
   logo,
-  isDark,
-  onToggleDark,
   minimized: initialMinimized = false,
 }) {
   const [minimized, setMinimized] = useState(initialMinimized);
+  const { isDark, toggleDark } = useTheme();
+  const navigate = useNavigate();
+
+  const handleNavClickInternal = (label) => {
+    if (label === "Home") navigate("/");
+    else if (label === "Dashboards") navigate("/dashboards");
+    else if (label === "Settings") navigate("/settings");
+    else if (onNavClick) onNavClick(label);
+  };
 
   return (
     <div
@@ -197,7 +206,7 @@ export default function Sidebar({
             <div
               key={item.label}
               className={`sb-nav-item${active ? " sb-nav-active" : ""} flex items-center ${minimized ? "justify-center gap-0 p-2" : "justify-start gap-2 py-2 px-3"} rounded-lg cursor-pointer mb-px relative`}
-              onClick={() => onNavClick(item.label)}
+              onClick={() => handleNavClickInternal(item.label)}
               title={minimized ? item.label : ""}
               style={{
                 background: active ? "var(--nav-active-bg)" : "transparent",
@@ -253,7 +262,7 @@ export default function Sidebar({
           const active = activeNav === "Subscriptions"; return (
             <div
               className={`sb-nav-item${active ? " sb-nav-active" : ""} flex items-center ${minimized ? "justify-center gap-0 p-2" : "justify-start gap-2 py-2 px-3"} rounded-lg cursor-pointer`}
-              onClick={() => onNavClick("Subscriptions")}
+              onClick={() => handleNavClickInternal("Subscriptions")}
               title={minimized ? "Subscriptions" : ""}
               style={{
                 background: active ? "var(--nav-active-bg)" : "transparent",
@@ -276,7 +285,7 @@ export default function Sidebar({
           const active = activeNav === "Settings"; return (
             <div
               className={`sb-nav-item${active ? " sb-nav-active" : ""} flex items-center ${minimized ? "justify-center gap-0 p-2" : "justify-start gap-2 py-2 px-3"} rounded-lg cursor-pointer`}
-              onClick={() => onNavClick("Settings")}
+              onClick={() => handleNavClickInternal("Settings")}
               title={minimized ? "Settings" : ""}
               style={{
                 background: active ? "var(--nav-active-bg)" : "transparent",
@@ -299,7 +308,7 @@ export default function Sidebar({
           const active = activeNav === "Profile"; return (
             <div
               className={`sb-nav-item${active ? " sb-nav-active" : ""} flex items-center ${minimized ? "justify-center gap-0 p-2" : "justify-start gap-2 py-2 px-3"} rounded-lg cursor-pointer`}
-              onClick={() => onNavClick("Profile")}
+              onClick={() => handleNavClickInternal("Profile")}
               title={minimized ? "Profile" : ""}
               style={{
                 background: active ? "var(--nav-active-bg)" : "transparent",
@@ -331,10 +340,10 @@ export default function Sidebar({
         </div>
 
         {/* Dark / Light toggle */}
-        {onToggleDark && (
+        {toggleDark && (
           <div
             className={`flex items-center ${minimized ? "justify-center gap-0 p-2" : "justify-start gap-2 py-2 px-3"} rounded-lg cursor-pointer mt-1`}
-            onClick={onToggleDark}
+            onClick={toggleDark}
             title={minimized ? (isDark ? "Switch to Light" : "Switch to Dark") : ""}
           >
             <Icon name={isDark ? "moon" : "sun"} size={17} color="var(--icon-color)" />
