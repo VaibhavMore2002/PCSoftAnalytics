@@ -236,7 +236,7 @@ export default function Sidebar({
                   )}
                   {item.badge && !item.aiBadge && (
                     <span
-                      className="text-[0.6rem] font-bold font-mono py-0.5 px-2 rounded-full border shrink-0"
+                      className="text-[0.6rem] font-bold py-0.5 px-2 rounded-full border shrink-0"
                       style={{
                         background: active ? "rgba(255,255,255,0.22)" : "var(--badge-bg)",
                         color: active ? "#fff" : "var(--text-muted)",

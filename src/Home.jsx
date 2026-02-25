@@ -310,12 +310,12 @@ export default function PCSoftAnalytics() {
                       {s.label}
                     </div>
                     {/* Value */}
-                    <div className="text-[1.85rem] font-bold leading-none tracking-[-0.02em] mb-[10px] font-mono text-[var(--text)]">
+                    <div className="text-[1.85rem] font-bold leading-none tracking-[-0.02em] mb-[10px] text-[var(--text)]">
                       <AnimatedNumber target={s.value} />
                     </div>
                     {/* Change */}
                     <div className="flex items-center gap-[5px]">
-                      <span className="text-[0.68rem] font-semibold font-mono text-[var(--positive)]">
+                      <span className="text-[0.68rem] font-semibold text-[var(--positive)]">
                         ↑ {s.change}
                       </span>
                       <span className="text-[0.65rem] text-[var(--text-muted)]">vs last month</span>
@@ -396,7 +396,7 @@ export default function PCSoftAnalytics() {
                       {a.sub}
                     </div>
                   </div>
-                  <div className="text-[0.63rem] shrink-0 tracking-[0.02em] font-mono text-[var(--text-muted)]">
+                  <div className="text-[0.63rem] shrink-0 tracking-[0.02em] text-[var(--text-muted)]">
                     {a.time}
                   </div>
                 </div>

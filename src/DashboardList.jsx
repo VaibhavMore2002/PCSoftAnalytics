@@ -284,7 +284,7 @@ export default function DashboardsPage() {
                             <span className="text-[0.55rem] text-[var(--nav-active)]">★</span>
                           )}
                           <span
-                            className="text-[0.78rem] font-normal font-mono"
+                            className="text-[0.78rem] font-normal"
                             style={{ color: isPriority ? "var(--nav-active)" : "var(--text)" }}
                           >
                             {d.name}
@@ -316,7 +316,7 @@ export default function DashboardsPage() {
                       {/* Widgets */}
                       <td className="px-3.5 py-3 text-center">
                         <span
-                          className={`text-[0.76rem] font-semibold font-mono ${d.widgets > 0 ? "text-[var(--nav-active)] opacity-100" : "text-[var(--text-muted)] opacity-50"}`}
+                          className={`text-[0.76rem] font-semibold ${d.widgets > 0 ? "text-[var(--nav-active)] opacity-100" : "text-[var(--text-muted)] opacity-50"}`}
                         >
                           {d.widgets}
                         </span>
@@ -327,7 +327,7 @@ export default function DashboardsPage() {
                       </td>
                       {/* Updated */}
                       <td className="px-3.5 py-3">
-                        <span className="text-[0.70rem] font-mono text-[var(--text-muted)]">
+                        <span className="text-[0.70rem] text-[var(--text-muted)]">
                           {d.updated}
                         </span>
                       </td>
@@ -349,7 +349,7 @@ export default function DashboardsPage() {
         <div className="flex items-center justify-between px-7 py-[10px] shrink-0 border-t border-t-[var(--border)] bg-[var(--topbar-bg)]">
           <div className="flex items-center gap-3">
             <span className="text-[0.68rem] font-medium text-[var(--text-muted)]">
-              Showing <span className="text-[var(--nav-active)] font-mono">{filtered.length}</span> of <span className="text-[var(--nav-active)] font-mono">{DASHBOARDS.length}</span> dashboards
+              Showing <span className="text-[var(--nav-active)]">{filtered.length}</span> of <span className="text-[var(--nav-active)]">{DASHBOARDS.length}</span> dashboards
             </span>
             {activeTab !== "All" && (
               <span
@@ -369,7 +369,7 @@ export default function DashboardsPage() {
               }}
             />
             <span className="text-[0.68rem] font-medium text-[var(--text-muted)]">
-              <span className="text-[var(--nav-active)] font-mono">{priorityDashboards.length}</span> priority selected
+              <span className="text-[var(--nav-active)]">{priorityDashboards.length}</span> priority selected
             </span>
           </div>
         </div>
