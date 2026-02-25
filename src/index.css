@@ -1,1 +1,305 @@
 @import "tailwindcss";
+
+/* ─────────────────────────────────────────
+   Light mode tokens (default)
+───────────────────────────────────────── */
+@layer base {
+    :root {
+        --bg: #f8f7fc;
+        --bg-sidebar: linear-gradient(180deg, #ffffff 0%, #f3f0ff 100%);
+        --bg-card: #ffffff;
+        --bg-card-alt: #f8f7fc;
+        --bg-input: #f3f0fa;
+        --bg-hover: rgba(124, 58, 237, 0.04);
+        --bg-active: rgba(124, 58, 237, 0.10);
+        --border: #ebe6f6;
+        --border-active: rgba(124, 58, 237, 0.45);
+        --text: #1e1033;
+        --text-sub: #5b5070;
+        --text-muted: #9585b4;
+        --nav-active: #7c3aed;
+        --nav-inactive: #9585b4;
+        --nav-active-bg: linear-gradient(135deg, #7c3aed, #9333ea);
+        --nav-active-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+        --positive: #16a34a;
+        --negative: #dc2626;
+        --accent1: #7c3aed;
+        --accent2: #2563eb;
+        --accent3: #b45309;
+        --accent4: #be185d;
+        --shadow: 0 1px 3px rgba(124, 58, 237, 0.06);
+        --shadow-hover: 0 4px 20px rgba(124, 58, 237, 0.12);
+        --track-color: #ede8fa;
+        --badge-bg: #ede8fa;
+        --divider: #ebe6f6;
+        --logo-grad: linear-gradient(135deg, #7c3aed, #9333ea);
+        --logo-glow: 0 0 16px rgba(124, 58, 237, 0.22);
+        --scrollbar: #c4b5fd;
+        --tooltip-bg: #ffffff;
+        --stripe-a: #7c3aed;
+        --stripe-b: #7c3aed;
+        --stripe-c: #7c3aed;
+        --stripe-d: #7c3aed;
+        --grid-line: #ede8fa;
+        --bar-label: rgba(30, 16, 51, 0.40);
+        --sidebar-hover: rgba(124, 58, 237, 0.09);
+        --sidebar-shadow: 2px 0 24px rgba(124, 58, 237, 0.08);
+        --icon-color: #9585b4;
+        --topbar-bg: #ffffff;
+        --collapse-btn: #7c3aed;
+        --logout-bg: rgba(189, 147, 249, 0.13);
+        --logout-border: rgba(189, 147, 249, 0.28);
+        --logout-color: #7c3aed;
+    }
+
+    /* ─────────────────────────────────────────
+     Dark mode overrides
+  ───────────────────────────────────────── */
+    .dark {
+        --bg: #12111a;
+        --bg-sidebar: #2e2e3a;
+        --bg-card: #2e2e3a;
+        --bg-card-alt: #353544;
+        --bg-input: rgba(255, 255, 255, 0.07);
+        --bg-hover: rgba(189, 147, 249, 0.10);
+        --bg-active: rgba(189, 147, 249, 0.18);
+        --border: rgba(255, 255, 255, 0.09);
+        --border-active: rgba(189, 147, 249, 0.55);
+        --text: #f1f5f9;
+        --text-sub: rgba(255, 255, 255, 0.55);
+        --text-muted: rgba(255, 255, 255, 0.32);
+        --nav-active: #bd93f9;
+        --nav-inactive: rgba(255, 255, 255, 0.65);
+        --nav-active-bg: #bd93f9;
+        --nav-active-shadow: none;
+        --positive: #4ade80;
+        --negative: #f87171;
+        --accent1: #bd93f9;
+        --accent2: #93c5fd;
+        --accent3: #fcd34d;
+        --accent4: #f9a8d4;
+        --shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+        --shadow-hover: 0 5px 22px rgba(0, 0, 0, 0.50);
+        --track-color: rgba(255, 255, 255, 0.08);
+        --badge-bg: rgba(189, 147, 249, 0.15);
+        --divider: rgba(255, 255, 255, 0.07);
+        --logo-grad: linear-gradient(135deg, #bd93f9, #9333ea);
+        --logo-glow: 0 0 20px rgba(189, 147, 249, 0.4);
+        --scrollbar: rgba(189, 147, 249, 0.22);
+        --tooltip-bg: rgba(10, 12, 28, 0.96);
+        --stripe-a: #bd93f9;
+        --stripe-b: #bd93f9;
+        --stripe-c: #bd93f9;
+        --stripe-d: #bd93f9;
+        --grid-line: rgba(255, 255, 255, 0.04);
+        --bar-label: rgba(255, 255, 255, 0.45);
+        --sidebar-hover: rgba(189, 147, 249, 0.15);
+        --sidebar-shadow: none;
+        --icon-color: rgba(255, 255, 255, 0.65);
+        --topbar-bg: rgba(255, 255, 255, 0.015);
+        --collapse-btn: #bd93f9;
+        --logout-bg: rgba(189, 147, 249, 0.12);
+        --logout-border: rgba(189, 147, 249, 0.30);
+        --logout-color: #bd93f9;
+    }
+
+    /* Base reset */
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    html,
+    body {
+        height: 100%;
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    button,
+    input {
+        font-family: inherit;
+        outline: none;
+        border: none;
+        background: none;
+    }
+
+    img,
+    svg {
+        display: inline;
+    }
+}
+
+/* ─────────────────────────────────────────
+   Scrollbar
+───────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar);
+    border-radius: 3px;
+}
+
+/* ─────────────────────────────────────────
+   Keyframes
+───────────────────────────────────────── */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulseGlow {
+
+    0%,
+    100% {
+        opacity: 0.45;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.fade-up {
+    animation: fadeUp 0.38s ease both;
+}
+
+.live-dot {
+    animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────
+   Card / Row hover states
+───────────────────────────────────────── */
+.stat-card {
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover) !important;
+}
+
+.qa-card {
+    transition: transform .2s ease, border-color .2s ease;
+}
+
+.qa-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-active) !important;
+}
+
+.activity-row {
+    transition: background .15s ease;
+}
+
+.activity-row:hover {
+    background: var(--bg-hover) !important;
+}
+
+.card {
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover) !important;
+}
+
+.icon-btn:hover {
+    background: var(--bg-hover) !important;
+}
+
+.explore-link {
+    transition: letter-spacing .15s ease, color .15s ease;
+}
+
+.explore-link:hover {
+    letter-spacing: 0.04em;
+}
+
+/* ─────────────────────────────────────────
+   Sidebar-specific
+───────────────────────────────────────── */
+.sb-nav-item {
+    transition: background .18s ease, color .18s ease;
+}
+
+.sb-nav-item:not(.sb-nav-active):hover {
+    background: var(--sidebar-hover) !important;
+}
+
+.sb-nav-active:hover {
+    filter: brightness(1.08);
+}
+
+.sb-collapse-btn:hover {
+    filter: brightness(1.15);
+}
+
+.sb-logout:not(.sb-nav-active):hover {
+    background: var(--sidebar-hover) !important;
+}
+
+.sb-toggle-track {
+    transition: background .25s ease;
+}
+
+.sb-toggle-thumb {
+    transition: transform .25s ease;
+}
+
+/* ─────────────────────────────────────────
+   Data Sources – search & dropdowns
+───────────────────────────────────────── */
+.ds-search {
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.ds-search:focus-within {
+    border-color: var(--border-active) !important;
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.12);
+}
+
+.ds-search input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+.ds-select {
+    transition: border-color .2s ease, box-shadow .2s ease;
+    min-width: 110px;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.ds-select:hover {
+    border-color: var(--border-active) !important;
+}
+
+.ds-select:focus {
+    border-color: var(--border-active) !important;
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.12);
+}
+
+.ds-select option {
+    background: var(--bg-card);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    padding: 6px 10px;
+}
