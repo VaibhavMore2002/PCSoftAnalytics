@@ -5,30 +5,40 @@ import { useTheme } from "./ThemeContext.jsx";
 
 // ── Stripe accent colors per theme ─────────────────────────
 const STRIPES = {
-  dark: { stripeA: "#bd93f9", stripeB: "#bd93f9", stripeC: "#bd93f9", stripeD: "#bd93f9" },
-  light: { stripeA: "#7c3aed", stripeB: "#7c3aed", stripeC: "#7c3aed", stripeD: "#7c3aed" },
+  dark: {
+    stripeA: "var(--accent1)",
+    stripeB: "var(--accent2)",
+    stripeC: "var(--accent3)",
+    stripeD: "var(--accent4)"
+  },
+  light: {
+    stripeA: "var(--accent1)",
+    stripeB: "var(--accent2)",
+    stripeC: "var(--accent3)",
+    stripeD: "var(--accent4)"
+  },
 };
 
 // ── Static data ────────────────────────────────────────────
 const stats = [
-  { label: "Total Data Sources", value: 24, change: "+12%", icon: "db", stripe: "stripeB" },
+  { label: "Total Data Sources", value: 24, change: "+12%", icon: "db", stripe: "stripeA" },
   { label: "Active Data Sets", value: 156, change: "+8%", icon: "layers", stripe: "stripeA" },
-  { label: "Reports Generated", value: 1234, change: "+23%", icon: "trend", stripe: "stripeC" },
-  { label: "Active Users", value: 89, change: "+5%", icon: "users", stripe: "stripeD" },
+  { label: "Reports Generated", value: 1234, change: "+23%", icon: "trend", stripe: "stripeA" },
+  { label: "Active Users", value: 89, change: "+5%", icon: "users", stripe: "stripeA" },
 ];
 
 const quickActions = [
-  { label: "Data Sources", desc: "Connect and manage your data sources", icon: "db", stripe: "stripeB" },
+  { label: "Data Sources", desc: "Connect and manage your data sources", icon: "db", stripe: "stripeA" },
   { label: "Data Sets", desc: "Create and manage your data sets", icon: "layers", stripe: "stripeA" },
-  { label: "Get Started", desc: "Learn how to use PCSoft Analytics", icon: "star", stripe: "stripeC" },
+  { label: "Get Started", desc: "Learn how to use PCSoft Analytics", icon: "star", stripe: "stripeA" },
 ];
 
 const activity = [
-  { icon: "report", title: "New report generated", sub: "by Sarah Johnson", time: "5 min ago", dot: "#bd93f9" },
-  { icon: "db", title: "Data source connected", sub: "PostgreSQL DB added", time: "23 min ago", dot: "#bd93f9" },
-  { icon: "layers", title: "Data set updated", sub: "Q4 Sales Dataset", time: "1 hr ago", dot: "#bd93f9" },
-  { icon: "alert", title: "Scheduled report failed", sub: "Monthly Summary", time: "2 hr ago", dot: "#bd93f9" },
-  { icon: "user", title: "New user joined", sub: "mike@company.com", time: "3 hr ago", dot: "#bd93f9" },
+  { icon: "report", title: "New report generated", sub: "by Sarah Johnson", time: "5 min ago", dot: "var(--accent1)" },
+  { icon: "db", title: "Data source connected", sub: "PostgreSQL DB added", time: "23 min ago", dot: "var(--accent1)" },
+  { icon: "layers", title: "Data set updated", sub: "Q4 Sales Dataset", time: "1 hr ago", dot: "var(--accent1)" },
+  { icon: "alert", title: "Scheduled report failed", sub: "Monthly Summary", time: "2 hr ago", dot: "var(--accent1)" },
+  { icon: "user", title: "New user joined", sub: "mike@company.com", time: "3 hr ago", dot: "var(--accent1)" },
 ];
 
 const navItems = [
@@ -266,7 +276,7 @@ export default function PCSoftAnalytics() {
             {/* Avatar */}
             <div
               className="w-8 h-8 rounded-[9px] flex items-center justify-center text-[0.68rem] font-bold text-white cursor-pointer tracking-[0.02em] [box-shadow:0_2px_8px_rgba(124,58,237,0.30)]"
-              style={{ background: "linear-gradient(135deg,#7c3aed,#9333ea)" }}
+              style={{ background: "var(--nav-active-bg)" }}
             >
               JD
             </div>

@@ -194,7 +194,7 @@ export default function DashboardsPage() {
             ))}
             <button
               className="create-btn flex items-center gap-1 text-[0.72rem] font-semibold rounded-md cursor-pointer ml-1 px-[14px] py-[6px] text-white border-none [box-shadow:0_2px_10px_rgba(124,58,237,0.35)]"
-              style={{ background: "linear-gradient(135deg,#7c3aed,#9333ea)" }}
+              style={{ background: "var(--nav-active-bg)" }}
             >
               <Icon name="plus" size={12} color="#fff" />
               Create
@@ -264,7 +264,7 @@ export default function DashboardsPage() {
                           <div
                             className="flex items-center justify-center transition-all duration-200 rounded-sm w-[17px] h-[17px]"
                             style={{
-                              background: isPriority ? "linear-gradient(135deg,#7c3aed,#9333ea)" : "transparent",
+                              background: isPriority ? "var(--nav-active-bg)" : "transparent",
                               border: isPriority ? "none" : "1.5px solid var(--border)",
                               boxShadow: isPriority ? "0 2px 6px rgba(124,58,237,0.30)" : "none",
                             }}

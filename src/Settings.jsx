@@ -25,8 +25,8 @@ function Icon({ name, size = 18, color = "currentColor" }) {
 
 const palettes = [
     { id: 'default', name: 'Default Purple', primary: '#7c3aed', bg: '#f8f7fc', darkBg: '#12111a' },
-    { id: 'oceanic', name: 'Oceanic Blue', primary: '#0ea5e9', bg: '#f0f9ff', darkBg: '#0b0f19' },
-    { id: 'sun-steel', name: 'Sun & Steel', primary: '#f59e0b', bg: '#fffbeb', darkBg: '#0a0a0a' },
+    { id: 'oceanic', name: 'Oceanic Blue', primary: '#0284c7', bg: '#f0f9ff', darkBg: '#0f172a' },
+    { id: 'sun-steel', name: 'Sun & Steel', primary: '#ffbf00', bg: '#fffbeb', darkBg: '#111111' },
 ];
 
 export default function Settings() {

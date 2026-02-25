@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'DM Sans', sans-serif;
-  --font-mono: 'DM Mono', monospace;
+    --font-sans: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
 }
 
 /* ─────────────────────────────────────────
@@ -108,61 +108,67 @@
         --logout-color: #bd93f9;
     }
 
-    /* Oceanic Palette (Blue) */
+    /* Oceanic Palette (Professional Sky Blue) */
     [data-palette='oceanic'] {
-        --nav-active: #0ea5e9;
-        --nav-active-bg: linear-gradient(135deg, #0ea5e9, #2563eb);
-        --nav-active-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
-        --accent1: #0ea5e9;
-        --logo-grad: linear-gradient(135deg, #0ea5e9, #2563eb);
-        --logo-glow: 0 0 16px rgba(14, 165, 233, 0.3);
-        --collapse-btn: #0ea5e9;
-        --logout-color: #0ea5e9;
-        --border-active: rgba(14, 165, 233, 0.45);
+        --nav-active: #0284c7;
+        --nav-active-bg: linear-gradient(135deg, #0284c7, #0369a1);
+        --nav-active-shadow: 0 2px 8px rgba(2, 132, 199, 0.15);
+        --accent1: #0284c7;
+        --logo-grad: linear-gradient(135deg, #0284c7, #0ea5e9);
+        --logo-glow: 0 0 10px rgba(2, 132, 199, 0.15);
+        --collapse-btn: #0284c7;
+        --logout-color: #0284c7;
+        --border-active: rgba(2, 132, 199, 0.35);
     }
 
     .dark[data-palette='oceanic'] {
-        --bg: #0b0f19;
-        --bg-sidebar: #111827;
-        --bg-card: #111827;
-        --bg-card-alt: #1f2937;
+        --bg: #0f172a;
+        --bg-sidebar: #1e293b;
+        --bg-card: #1e293b;
+        --bg-card-alt: #334155;
         --nav-active: #38bdf8;
         --nav-active-bg: #38bdf8;
         --accent1: #38bdf8;
-        --logo-grad: linear-gradient(135deg, #38bdf8, #2563eb);
-        --logo-glow: 0 0 20px rgba(56, 189, 248, 0.4);
+        --logo-grad: linear-gradient(135deg, #38bdf8, #0ea5e9);
+        --logo-glow: 0 0 12px rgba(56, 189, 248, 0.25);
         --collapse-btn: #38bdf8;
         --logout-color: #38bdf8;
-        --border-active: rgba(56, 189, 248, 0.55);
+        --border-active: rgba(56, 189, 248, 0.45);
     }
 
-    /* Sun & Steel Palette (Yellow & Black/Grey) */
+    /* Sun & Steel Palette (Elegant Amber Re-refined) */
     [data-palette='sun-steel'] {
-        --nav-active: #f59e0b;
-        --nav-active-bg: linear-gradient(135deg, #f59e0b, #d97706);
-        --nav-active-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
-        --accent1: #f59e0b;
-        --logo-grad: linear-gradient(135deg, #f59e0b, #d97706);
-        --logo-glow: 0 0 16px rgba(245, 158, 11, 0.3);
-        --collapse-btn: #f59e0b;
-        --logout-color: #f59e0b;
-        --border-active: rgba(245, 158, 11, 0.45);
+        --nav-active: #ffbf00;
+        --nav-active-bg: linear-gradient(135deg, #ffbf00, #ff8c00);
+        --nav-active-shadow: 0 2px 8px rgba(255, 191, 0, 0.15);
+        --accent1: #ffbf00;
+        --accent2: #ff8c00;
+        --accent3: #ffcc33;
+        --accent4: #ffdb58;
+        --logo-grad: linear-gradient(135deg, #ffbf00, #ffb000);
+        --logo-glow: 0 0 10px rgba(255, 191, 0, 0.15);
+        --collapse-btn: #ffbf00;
+        --logout-color: #ffbf00;
+        --border-active: rgba(255, 191, 0, 0.35);
     }
 
     .dark[data-palette='sun-steel'] {
-        --bg: #0a0a0a;
-        --bg-sidebar: #171717;
-        --bg-card: #171717;
+        --bg: #111111;
+        --bg-sidebar: #1a1a1a;
+        --bg-card: #1a1a1a;
         --bg-card-alt: #262626;
-        --nav-active: #fbbf24;
-        --nav-active-bg: #fbbf24;
-        --accent1: #fbbf24;
-        --logo-grad: linear-gradient(135deg, #fbbf24, #d97706);
-        --logo-glow: 0 0 20px rgba(251, 191, 36, 0.4);
-        --collapse-btn: #fbbf24;
-        --logout-color: #fbbf24;
-        --border-active: rgba(251, 191, 36, 0.55);
-        --text: #fafafa;
+        --nav-active: #ffbf00;
+        --nav-active-bg: #ffbf00;
+        --accent1: #ffbf00;
+        --accent2: #ffb700;
+        --accent3: #ffcc00;
+        --accent4: #ffd700;
+        --logo-grad: linear-gradient(135deg, #ffbf00, #ffa000);
+        --logo-glow: 0 0 12px rgba(255, 191, 0, 0.25);
+        --collapse-btn: #ffbf00;
+        --logout-color: #ffbf00;
+        --border-active: rgba(255, 191, 0, 0.45);
+        --text: #ffffff;
     }
 
     /* Base reset */
