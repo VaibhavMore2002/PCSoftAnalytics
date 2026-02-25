@@ -149,7 +149,13 @@ function SectionLabel({ children, right }) {
 
 // ── Main ───────────────────────────────────────────────────
 export default function PCSoftAnalytics() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem("pcsoft-isDark");
+      if (saved !== null) return JSON.parse(saved);
+    } catch {}
+    return false;
+  });
   const [activeNav, setActiveNav] = useState("Home");
   const [dsSearch, setDsSearch] = useState("");
   const [priorityDashboards, setPriorityDashboards] = useState(() => {
@@ -163,6 +169,7 @@ export default function PCSoftAnalytics() {
   // Sync dark class on <html>
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
+    try { localStorage.setItem("pcsoft-isDark", JSON.stringify(isDark)); } catch {}
   }, [isDark]);
 
   // Listen for priority dashboard changes from the Dashboards page
@@ -212,7 +219,7 @@ export default function PCSoftAnalytics() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* ── Top bar ───────────────────────────────── */}
-        <div className="flex items-center justify-between px-7 pt-3 pb-3 shrink-0 transition-colors duration-300 gap-6 border-b border-b-[var(--border)] bg-[var(--topbar-bg)]">
+        <div className="flex items-center justify-between px-7 pt-7 pb-3 shrink-0 transition-colors duration-300 gap-6 border-b border-b-[var(--border)] bg-[var(--topbar-bg)]">
           {/* ── Left: Data Sources section ─────────── */}
           <div className="flex items-center gap-4 flex-1 min-w-0">
             {/* Data Sources label */}

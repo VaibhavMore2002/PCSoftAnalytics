@@ -75,7 +75,13 @@ function StatusBadge({ status }) {
 
 // ── Main ────────────────────────────────────────────────────
 export default function DashboardsPage() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem("pcsoft-isDark");
+      if (saved !== null) return JSON.parse(saved);
+    } catch {}
+    return false;
+  });
   const [activeNav, setActiveNav] = useState("Dashboards");
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("All");
@@ -85,7 +91,10 @@ export default function DashboardsPage() {
   });
   const navigate = useNavigate();
 
-  useEffect(() => { document.documentElement.classList.toggle("dark", isDark); }, [isDark]);
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDark);
+    try { localStorage.setItem("pcsoft-isDark", JSON.stringify(isDark)); } catch {}
+  }, [isDark]);
 
   useEffect(() => {
     localStorage.setItem("pcsoft-priority-dashboards", JSON.stringify(priorityDashboards));
@@ -288,7 +297,7 @@ export default function DashboardsPage() {
                           )}
                           <span
                             className="text-[0.78rem] font-normal font-mono"
-                            style={{ color: isPriority ? "var(--nav-active)" : "#fff" }}
+                            style={{ color: isPriority ? "var(--nav-active)" : "var(--text)" }}
                           >
                             {d.name}
                           </span>
@@ -319,7 +328,7 @@ export default function DashboardsPage() {
                       {/* Widgets */}
                       <td className="px-3.5 py-3 text-center">
                         <span
-                          className={`text-[0.76rem] font-semibold font-mono ${d.widgets > 0 ? "text-white opacity-100" : "text-[var(--text-muted)] opacity-50"}`}
+                          className={`text-[0.76rem] font-semibold font-mono ${d.widgets > 0 ? "text-[var(--nav-active)] opacity-100" : "text-[var(--text-muted)] opacity-50"}`}
                         >
                           {d.widgets}
                         </span>
@@ -352,7 +361,7 @@ export default function DashboardsPage() {
         <div className="flex items-center justify-between px-7 py-[10px] shrink-0 border-t border-t-[var(--border)] bg-[var(--topbar-bg)]">
           <div className="flex items-center gap-3">
             <span className="text-[0.68rem] font-medium text-[var(--text-muted)]">
-              Showing <span className="text-white font-mono">{filtered.length}</span> of <span className="text-white font-mono">{DASHBOARDS.length}</span> dashboards
+              Showing <span className="text-[var(--nav-active)] font-mono">{filtered.length}</span> of <span className="text-[var(--nav-active)] font-mono">{DASHBOARDS.length}</span> dashboards
             </span>
             {activeTab !== "All" && (
               <span
