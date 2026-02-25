@@ -8,11 +8,10 @@ function App() {
   return (
     <ThemeProvider>
       <Routes>
+        <Route path="*" element={<Home />} />
         <Route path="/" element={<Home />} />
-        <Route path="/analytics" element={<Home />} />
         <Route path="/dashboards" element={<DashboardList />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<Home />} />
       </Routes>
     </ThemeProvider>
   );

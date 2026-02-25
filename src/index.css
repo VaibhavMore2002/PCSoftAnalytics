@@ -2,7 +2,6 @@
 
 @theme {
     --font-sans: 'DM Sans', sans-serif;
-    --font-mono: 'DM Mono', monospace;
 }
 
 /* ─────────────────────────────────────────
@@ -353,7 +352,6 @@
 .ds-select {
     transition: border-color .2s ease, box-shadow .2s ease;
     min-width: 110px;
-    font-family: 'DM Sans', sans-serif;
 }
 
 .ds-select:hover {
@@ -368,7 +366,6 @@
 .ds-select option {
     background: var(--bg-card);
     color: var(--text);
-    font-family: 'DM Sans', sans-serif;
     padding: 6px 10px;
 }
 
