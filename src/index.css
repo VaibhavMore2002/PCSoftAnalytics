@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
 /* ─────────────────────────────────────────
    Light mode tokens (default)
 ───────────────────────────────────────── */
@@ -302,4 +307,52 @@
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
     padding: 6px 10px;
+}
+
+/* ─────────────────────────────────────────
+   Dashboard action buttons
+───────────────────────────────────────── */
+.action-btn {
+    transition: border-color .15s ease, background .15s ease;
+}
+
+.action-btn:hover {
+    border-color: var(--nav-active) !important;
+    background: rgba(189, 147, 249, 0.08) !important;
+}
+
+.create-btn {
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+
+.create-btn:hover {
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.50) !important;
+    transform: translateY(-1px);
+}
+
+.dots-btn {
+    transition: background .15s ease, border-color .15s ease;
+}
+
+.dots-btn:hover {
+    background: var(--bg-input) !important;
+    border-color: var(--border) !important;
+}
+
+/* Dashboard table rows */
+.dash-row {
+    transition: background .15s ease;
+}
+
+.dash-row:hover {
+    background: rgba(189, 147, 249, 0.03) !important;
+}
+
+.dash-row-priority {
+    background: rgba(189, 147, 249, 0.05);
+    transition: background .15s ease;
+}
+
+.dash-row-priority:hover {
+    background: rgba(189, 147, 249, 0.10) !important;
 }

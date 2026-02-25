@@ -119,10 +119,7 @@ export default function DashboardsPage() {
   DASHBOARDS.forEach((d) => { if (counts[d.status] !== undefined) counts[d.status]++; });
 
   return (
-    <div
-      className="flex h-screen overflow-hidden transition-colors duration-300"
-      style={{ background: "var(--bg)", color: "var(--text)", fontFamily: "'DM Sans', sans-serif" }}
-    >
+    <div className="flex h-screen overflow-hidden transition-colors duration-300 bg-[var(--bg)] text-[var(--text)] font-sans">
       {/* ── Sidebar ──────────────────────────────────── */}
       <Sidebar
         navItems={navItems}
@@ -137,46 +134,38 @@ export default function DashboardsPage() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* ── Top bar ───────────────────────────────── */}
-        <div
-          className="flex items-center justify-between px-7 pt-3 pb-3 shrink-0 transition-colors duration-300 gap-4"
-          style={{ borderBottom: "1px solid var(--border)", background: "var(--topbar-bg)" }}
-        >
+        <div className="flex items-center justify-between px-7 pt-3 pb-3 shrink-0 transition-colors duration-300 gap-4 border-b border-b-[var(--border)] bg-[var(--topbar-bg)]">
           {/* Left: Title + Search */}
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div className="flex items-center gap-2 shrink-0">
               <Icon name="dash" size={18} color="var(--nav-active)" />
-              <span className="text-[0.92rem] font-bold tracking-[-0.01em] whitespace-nowrap" style={{ color: "var(--text)" }}>
+              <span className="text-[0.92rem] font-bold tracking-[-0.01em] whitespace-nowrap text-[var(--text)]">
                 Dashboards
               </span>
             </div>
-            <div
-              className="flex items-center gap-2 rounded-[9px] px-3 py-[6px] min-w-[180px] max-w-[280px] flex-1"
-              style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
-            >
+            <div className="flex items-center gap-2 rounded-[9px] px-3 py-[6px] min-w-[180px] max-w-[280px] flex-1 bg-[var(--bg-input)] border border-[var(--border)]">
               <Icon name="search" size={14} color="var(--text-muted)" />
               <input
                 type="text"
                 placeholder="Search dashboards..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="text-[0.78rem] w-full bg-transparent outline-none"
-                style={{ color: "var(--text)", caretColor: "var(--nav-active)" }}
+                className="text-[0.78rem] w-full bg-transparent outline-none text-[var(--text)] caret-[var(--nav-active)]"
               />
             </div>
           </div>
 
           {/* Center: Status tabs */}
-          <div className="flex items-center gap-[3px] shrink-0 rounded-[10px] p-[3px]" style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-1 shrink-0 rounded-lg p-1 bg-[var(--bg-input)] border border-[var(--border)]">
             {STATUS_TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className="text-[0.70rem] px-[12px] py-[4px] rounded-[7px] font-medium cursor-pointer transition-all duration-200"
+                className="text-[0.70rem] px-[12px] py-[4px] rounded-[7px] cursor-pointer transition-all duration-200 border-none"
                 style={{
                   background: activeTab === tab ? "var(--nav-active)" : "transparent",
                   color: activeTab === tab ? "#fff" : "var(--text-muted)",
                   fontWeight: activeTab === tab ? 700 : 500,
-                  border: "none",
                   boxShadow: activeTab === tab ? "0 1px 4px rgba(124,58,237,0.25)" : "none",
                 }}
               >
@@ -192,7 +181,7 @@ export default function DashboardsPage() {
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-[8px] shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {[
               { icon: "filter", title: "Filter by groups" },
               { icon: "settings", title: "Settings" },
@@ -200,25 +189,15 @@ export default function DashboardsPage() {
             ].map(({ icon, title }) => (
               <div
                 key={icon}
-                className="cursor-pointer w-[30px] h-[30px] rounded-[8px] flex items-center justify-center transition-all duration-150"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+                className="action-btn cursor-pointer rounded-md flex items-center justify-center w-[30px] h-[30px] bg-[var(--bg-input)] border border-[var(--border)]"
                 title={title}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--nav-active)"; e.currentTarget.style.background = "rgba(189,147,249,0.08)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-input)"; }}
               >
                 <Icon name={icon} size={13} color="var(--text-muted)" />
               </div>
             ))}
             <button
-              className="flex items-center gap-[5px] text-[0.72rem] font-semibold px-[14px] py-[6px] rounded-[9px] cursor-pointer transition-all duration-200 ml-[4px]"
-              style={{
-                background: "linear-gradient(135deg,#7c3aed,#9333ea)",
-                color: "#fff",
-                border: "none",
-                boxShadow: "0 2px 10px rgba(124,58,237,0.35)",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(124,58,237,0.50)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 2px 10px rgba(124,58,237,0.35)"; e.currentTarget.style.transform = "translateY(0)"; }}
+              className="create-btn flex items-center gap-1 text-[0.72rem] font-semibold rounded-md cursor-pointer ml-1 px-[14px] py-[6px] text-white border-none [box-shadow:0_2px_10px_rgba(124,58,237,0.35)]"
+              style={{ background: "linear-gradient(135deg,#7c3aed,#9333ea)" }}
             >
               <Icon name="plus" size={12} color="#fff" />
               Create
@@ -229,15 +208,10 @@ export default function DashboardsPage() {
         {/* ── Table area ─────────────────────────────── */}
         <div className="flex-1 overflow-auto p-5">
           <div
-            className="rounded-xl overflow-hidden fade-up"
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow)",
-              animationDelay: "0.05s",
-            }}
+            className="rounded-xl overflow-hidden fade-up bg-[var(--bg-card)] border border-[var(--border)] [box-shadow:var(--shadow)]"
+            style={{ animationDelay: "0.05s" }}
           >
-            <table className="w-full border-collapse" style={{ minWidth: 880 }}>
+            <table className="w-full border-collapse min-w-[880px]">
               <thead>
                 <tr style={{ borderBottom: "1.5px solid var(--border)" }}>
                   {[
@@ -252,20 +226,11 @@ export default function DashboardsPage() {
                   ].map((col, i) => (
                     <th
                       key={i}
-                      className="text-[0.60rem] font-bold tracking-[0.12em] uppercase py-[11px] px-[14px]"
-                      style={{
-                        color: "var(--text)",
-                        opacity: 0.7,
-                        textAlign: col.align || "left",
-                        width: col.width || "auto",
-                        background: "var(--topbar-bg)",
-                        position: "sticky",
-                        top: 0,
-                        zIndex: 1,
-                      }}
+                      className="text-[0.60rem] font-bold tracking-[0.12em] uppercase py-3 px-3.5 text-[var(--text)] opacity-70 bg-[var(--topbar-bg)] sticky top-0 z-[1]"
+                      style={{ textAlign: col.align || "left", width: col.width || "auto" }}
                     >
                       {col.label === "★" ? (
-                        <span style={{ color: "var(--nav-active)", fontSize: "0.72rem" }} title="Priority">★</span>
+                        <span className="text-[var(--nav-active)] text-[0.72rem]" title="Priority">★</span>
                       ) : col.label}
                     </th>
                   ))}
@@ -277,10 +242,10 @@ export default function DashboardsPage() {
                     <td colSpan={8} className="text-center py-16">
                       <div className="flex flex-col items-center gap-3">
                         <Icon name="search" size={32} color="var(--text-muted)" />
-                        <div className="text-[0.85rem] font-medium" style={{ color: "var(--text-muted)" }}>
+                        <div className="text-[0.85rem] font-medium text-[var(--text-muted)]">
                           No dashboards found
                         </div>
-                        <div className="text-[0.72rem]" style={{ color: "var(--text-muted)", opacity: 0.6 }}>
+                        <div className="text-[0.72rem] text-[var(--text-muted)] opacity-60">
                           Try adjusting your search or filter
                         </div>
                       </div>
@@ -292,28 +257,15 @@ export default function DashboardsPage() {
                   return (
                     <tr
                       key={d.id}
-                      className="transition-all duration-150"
-                      style={{
-                        borderBottom: i < filtered.length - 1 ? "1px solid var(--divider)" : "none",
-                        background: isPriority ? "rgba(189,147,249,0.05)" : "transparent",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = isPriority
-                          ? "rgba(189,147,249,0.10)"
-                          : "rgba(189,147,249,0.03)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = isPriority
-                          ? "rgba(189,147,249,0.05)"
-                          : "transparent";
-                      }}
+                      className={`${isPriority ? "dash-row-priority" : "dash-row"}`}
+                      style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--divider)" : "none" }}
                     >
                       {/* Checkbox */}
-                      <td className="px-[14px] py-[12px] text-center">
+                      <td className="px-3.5 py-3 text-center">
                         <label className="flex items-center justify-center cursor-pointer">
                           <input type="checkbox" checked={isPriority} onChange={() => togglePriority(d.name)} className="sr-only" />
                           <div
-                            className="w-[17px] h-[17px] rounded-[5px] flex items-center justify-center transition-all duration-200"
+                            className="flex items-center justify-center transition-all duration-200 rounded-sm w-[17px] h-[17px]"
                             style={{
                               background: isPriority ? "linear-gradient(135deg,#7c3aed,#9333ea)" : "transparent",
                               border: isPriority ? "none" : "1.5px solid var(--border)",
@@ -329,24 +281,21 @@ export default function DashboardsPage() {
                         </label>
                       </td>
                       {/* Name */}
-                      <td className="px-[14px] py-[12px]">
-                        <div className="flex items-center gap-[8px]">
+                      <td className="px-3.5 py-3">
+                        <div className="flex items-center gap-2">
                           {isPriority && (
-                            <span className="text-[0.55rem]" style={{ color: "var(--nav-active)" }}>★</span>
+                            <span className="text-[0.55rem] text-[var(--nav-active)]">★</span>
                           )}
                           <span
-                            className="text-[0.78rem] font-normal"
-                            style={{
-                              color: isPriority ? "var(--nav-active)" : "#fff",
-                              fontFamily: "'DM Mono', monospace",
-                            }}
+                            className="text-[0.78rem] font-normal font-mono"
+                            style={{ color: isPriority ? "var(--nav-active)" : "#fff" }}
                           >
                             {d.name}
                           </span>
                         </div>
                       </td>
                       {/* Description */}
-                      <td className="px-[14px] py-[12px]">
+                      <td className="px-3.5 py-3">
                         <span
                           className="text-[0.74rem]"
                           style={{
@@ -358,56 +307,36 @@ export default function DashboardsPage() {
                         </span>
                       </td>
                       {/* Groups */}
-                      <td className="px-[14px] py-[12px]">
+                      <td className="px-3.5 py-3">
                         {d.groups !== "—" ? (
-                          <span
-                            className="text-[0.65rem] font-medium px-[8px] py-[2px] rounded-full"
-                            style={{
-                              background: "rgba(189,147,249,0.10)",
-                              border: "1px solid rgba(189,147,249,0.20)",
-                              color: "var(--nav-active)",
-                            }}
-                          >
+                          <span className="text-[0.65rem] font-medium px-2 py-[2px] rounded-full bg-[rgba(189,147,249,0.10)] border border-[rgba(189,147,249,0.20)] text-[var(--nav-active)]">
                             {d.groups}
                           </span>
                         ) : (
-                          <span className="text-[0.74rem]" style={{ color: "var(--text-muted)", opacity: 0.5 }}>—</span>
+                          <span className="text-[0.74rem] text-[var(--text-muted)] opacity-50">—</span>
                         )}
                       </td>
                       {/* Widgets */}
-                      <td className="px-[14px] py-[12px] text-center">
+                      <td className="px-3.5 py-3 text-center">
                         <span
-                          className="text-[0.76rem] font-semibold"
-                          style={{
-                            color: d.widgets > 0 ? "#fff" : "var(--text-muted)",
-                            fontFamily: "'DM Mono', monospace",
-                            opacity: d.widgets > 0 ? 1 : 0.5,
-                          }}
+                          className={`text-[0.76rem] font-semibold font-mono ${d.widgets > 0 ? "text-white opacity-100" : "text-[var(--text-muted)] opacity-50"}`}
                         >
                           {d.widgets}
                         </span>
                       </td>
                       {/* Status */}
-                      <td className="px-[14px] py-[12px] text-center">
+                      <td className="px-3.5 py-3 text-center">
                         <StatusBadge status={d.status} />
                       </td>
                       {/* Updated */}
-                      <td className="px-[14px] py-[12px]">
-                        <span
-                          className="text-[0.70rem]"
-                          style={{ color: "var(--text-muted)", fontFamily: "'DM Mono', monospace" }}
-                        >
+                      <td className="px-3.5 py-3">
+                        <span className="text-[0.70rem] font-mono text-[var(--text-muted)]">
                           {d.updated}
                         </span>
                       </td>
                       {/* Actions */}
-                      <td className="px-[14px] py-[12px] text-center">
-                        <div
-                          className="cursor-pointer inline-flex items-center justify-center w-[26px] h-[26px] rounded-[7px] transition-all duration-150"
-                          style={{ border: "1px solid transparent" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-input)"; e.currentTarget.style.borderColor = "var(--border)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; }}
-                        >
+                      <td className="px-3.5 py-3 text-center">
+                        <div className="dots-btn cursor-pointer inline-flex items-center justify-center w-[26px] h-[26px] rounded-[7px] border border-transparent">
                           <Icon name="dots" size={14} color="var(--text-muted)" />
                         </div>
                       </td>
@@ -420,18 +349,14 @@ export default function DashboardsPage() {
         </div>
 
         {/* ── Footer ──────────────────────────────────── */}
-        <div
-          className="flex items-center justify-between px-7 py-[10px] shrink-0"
-          style={{ borderTop: "1px solid var(--border)", background: "var(--topbar-bg)" }}
-        >
+        <div className="flex items-center justify-between px-7 py-[10px] shrink-0 border-t border-t-[var(--border)] bg-[var(--topbar-bg)]">
           <div className="flex items-center gap-3">
-            <span className="text-[0.68rem] font-medium" style={{ color: "var(--text-muted)" }}>
-              Showing <span style={{ color: "#fff", fontFamily: "'DM Mono', monospace" }}>{filtered.length}</span> of <span style={{ color: "#fff", fontFamily: "'DM Mono', monospace" }}>{DASHBOARDS.length}</span> dashboards
+            <span className="text-[0.68rem] font-medium text-[var(--text-muted)]">
+              Showing <span className="text-white font-mono">{filtered.length}</span> of <span className="text-white font-mono">{DASHBOARDS.length}</span> dashboards
             </span>
             {activeTab !== "All" && (
               <span
-                className="text-[0.62rem] font-medium px-[8px] py-[2px] rounded-full cursor-pointer"
-                style={{ background: "rgba(189,147,249,0.10)", border: "1px solid rgba(189,147,249,0.20)", color: "var(--nav-active)" }}
+                className="text-[0.62rem] font-medium px-2 py-[2px] rounded-full cursor-pointer bg-[rgba(189,147,249,0.10)] border border-[rgba(189,147,249,0.20)] text-[var(--nav-active)]"
                 onClick={() => setActiveTab("All")}
               >
                 {activeTab} ✕
@@ -446,8 +371,8 @@ export default function DashboardsPage() {
                 boxShadow: priorityDashboards.length > 0 ? "0 0 6px rgba(189,147,249,0.5)" : "none",
               }}
             />
-            <span className="text-[0.68rem] font-medium" style={{ color: "var(--text-muted)" }}>
-              <span style={{ color: "var(--nav-active)", fontFamily: "'DM Mono', monospace" }}>{priorityDashboards.length}</span> priority selected
+            <span className="text-[0.68rem] font-medium text-[var(--text-muted)]">
+              <span className="text-[var(--nav-active)] font-mono">{priorityDashboards.length}</span> priority selected
             </span>
           </div>
         </div>

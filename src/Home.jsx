@@ -1,8 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
-
-
 
 // ── Stripe accent colors per theme ─────────────────────────
 const STRIPES = {
@@ -40,7 +38,6 @@ const navItems = [
   { label: "Dashboards", icon: "dash" },
   { label: "Analytics Expert", icon: "ai", aiBadge: true },
   { label: "Questions", icon: "question" },
-
 ];
 
 // ── Icons ──────────────────────────────────────────────────
@@ -141,8 +138,8 @@ function AnimatedNumber({ target, duration = 1400 }) {
 // ── Section label ──────────────────────────────────────────
 function SectionLabel({ children, right }) {
   return (
-    <div className="flex items-center justify-between mb-[14px]">
-      <span className="text-[0.62rem] font-bold tracking-[0.11em] uppercase" style={{ color: "var(--text-muted)" }}>
+    <div className="flex items-center justify-between mb-3.5">
+      <span className="text-[0.62rem] font-bold tracking-[0.11em] uppercase text-[var(--text-muted)]">
         {children}
       </span>
       {right}
@@ -178,7 +175,6 @@ export default function PCSoftAnalytics() {
     };
     window.addEventListener("priority-dashboards-changed", handler);
     window.addEventListener("storage", handler);
-    // Also reload on focus (in case navigated back)
     window.addEventListener("focus", handler);
     return () => {
       window.removeEventListener("priority-dashboards-changed", handler);
@@ -200,13 +196,8 @@ export default function PCSoftAnalytics() {
     else setActiveNav(label);
   };
 
-
-
   return (
-    <div
-      className="flex h-screen overflow-hidden transition-colors duration-300"
-      style={{ background: "var(--bg)", color: "var(--text)", fontFamily: "'DM Sans', sans-serif" }}
-    >
+    <div className="flex h-screen overflow-hidden transition-colors duration-300 bg-[var(--bg)] text-[var(--text)] font-sans">
       {/* ── Sidebar ──────────────────────────────────── */}
       <Sidebar
         navItems={navItems}
@@ -221,29 +212,20 @@ export default function PCSoftAnalytics() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* ── Top bar ───────────────────────────────── */}
-        <div
-          className="flex items-center justify-between px-7 pt-3 pb-3 shrink-0 transition-colors duration-300 gap-6"
-          style={{ borderBottom: "1px solid var(--border)", background: "var(--topbar-bg)" }}
-        >
+        <div className="flex items-center justify-between px-7 pt-3 pb-3 shrink-0 transition-colors duration-300 gap-6 border-b border-b-[var(--border)] bg-[var(--topbar-bg)]">
           {/* ── Left: Data Sources section ─────────── */}
           <div className="flex items-center gap-4 flex-1 min-w-0">
             {/* Data Sources label */}
             <div className="flex items-center gap-2 shrink-0">
               <Icon name="db" size={18} color="var(--nav-active)" />
-              <span className="text-[0.92rem] font-bold tracking-[-0.01em] whitespace-nowrap" style={{ color: "var(--text)" }}>
+              <span className="text-[0.92rem] font-bold tracking-[-0.01em] whitespace-nowrap text-[var(--text)]">
                 Data Sources
               </span>
             </div>
 
             {/* Search */}
-            <div
-              className="ds-search flex items-center gap-2 rounded-[9px] px-3 py-[6px] min-w-[180px] max-w-[260px] flex-1"
-              style={{
-                background: "var(--bg-input)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" style={{ flexShrink: 0 }}>
+            <div className="ds-search flex items-center gap-2 rounded-[9px] px-3 py-[6px] min-w-[180px] max-w-[260px] flex-1 bg-[var(--bg-input)] border border-[var(--border)]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" className="shrink-0">
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />
               </svg>
@@ -252,39 +234,30 @@ export default function PCSoftAnalytics() {
                 placeholder="Search data sources..."
                 value={dsSearch}
                 onChange={(e) => setDsSearch(e.target.value)}
-                className="text-[0.78rem] w-full bg-transparent outline-none"
-                style={{ color: "var(--text)", caretColor: "var(--nav-active)" }}
+                className="text-[0.78rem] w-full bg-transparent outline-none text-[var(--text)] caret-[var(--nav-active)]"
               />
             </div>
 
             {/* Dashboard Filter (only if priority dashboards exist) */}
             {priorityDashboards.length > 0 && (
               <div className="flex items-center gap-2 shrink-0">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nav-active)" strokeWidth="2" style={{ flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nav-active)" strokeWidth="2" className="shrink-0">
                   <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
                   <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
                 </svg>
                 <select
                   value={dashboardFilter}
                   onChange={(e) => setDashboardFilter(e.target.value)}
-                  className="text-[0.74rem] font-medium rounded-[8px] px-[10px] py-[6px] cursor-pointer outline-none"
-                  style={{
-                    background: "var(--bg-input)",
-                    color: "var(--text)",
-                    border: "1px solid var(--border)",
-                    appearance: "auto",
-                  }}
+                  className="ds-select text-[0.74rem] font-medium rounded-[8px] px-[10px] py-[6px] cursor-pointer outline-none bg-[var(--bg-input)] text-[var(--text)] border border-[var(--border)]"
                 >
-                  <option value="All Dashboards" style={{ background: "#fff", color: "#1a1a2e" }}>All Dashboards</option>
+                  <option value="All Dashboards">All Dashboards</option>
                   {priorityDashboards.map((name) => (
-                    <option key={name} value={name} style={{ background: "#fff", color: "#1a1a2e" }}>{name}</option>
+                    <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
               </div>
             )}
-
           </div>
-
 
           {/* ── Right: Notifications + Avatar ───────────── */}
           <div className="flex items-center gap-4 shrink-0">
@@ -294,15 +267,12 @@ export default function PCSoftAnalytics() {
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
-              <div
-                className="absolute -top-[2px] -right-[2px] w-2 h-2 rounded-full bg-[#ff5555]"
-                style={{ border: "2px solid var(--topbar-bg)" }}
-              />
+              <div className="absolute -top-[2px] -right-[2px] w-2 h-2 rounded-full bg-[#ff5555] border-2 border-[var(--topbar-bg)]" />
             </div>
             {/* Avatar */}
             <div
-              className="w-8 h-8 rounded-[9px] flex items-center justify-center text-[0.68rem] font-bold text-white cursor-pointer tracking-[0.02em]"
-              style={{ background: "linear-gradient(135deg,#7c3aed,#9333ea)", boxShadow: "0 2px 8px rgba(124,58,237,0.30)" }}
+              className="w-8 h-8 rounded-[9px] flex items-center justify-center text-[0.68rem] font-bold text-white cursor-pointer tracking-[0.02em] [box-shadow:0_2px_8px_rgba(124,58,237,0.30)]"
+              style={{ background: "linear-gradient(135deg,#7c3aed,#9333ea)" }}
             >
               JD
             </div>
@@ -315,45 +285,36 @@ export default function PCSoftAnalytics() {
           {/* ── Stat Cards ──────────────────────────── */}
           <div>
             <SectionLabel>Overview</SectionLabel>
-            <div className="grid grid-cols-4 gap-[14px]">
+            <div className="grid grid-cols-4 gap-3.5">
               {stats.map((s, i) => {
                 const color = S[s.stripe];
                 return (
                   <div
                     key={s.label}
-                    className="stat-card fade-up rounded-xl p-[18px_20px] relative"
-                    style={{
-                      background: "var(--bg-card)",
-                      border: `1px solid var(--border)`,
-                      borderLeft: `3px solid ${color}`,
-                      boxShadow: "var(--shadow)",
-                      animationDelay: `${0.05 + i * 0.07}s`,
-                    }}
+                    className="stat-card fade-up rounded-xl relative p-[18px_20px] bg-[var(--bg-card)] border border-[var(--border)] [box-shadow:var(--shadow)]"
+                    style={{ borderLeft: `3px solid ${color}`, animationDelay: `${0.05 + i * 0.07}s` }}
                   >
                     {/* Icon */}
                     <div
-                      className="w-[34px] h-[34px] rounded-[9px] flex items-center justify-center mb-[14px]"
+                      className="flex items-center justify-center mb-3.5 rounded-lg w-[34px] h-[34px]"
                       style={{ background: `${color}1a`, border: `1px solid ${color}30` }}
                     >
                       <Icon name={s.icon} size={15} color={color} />
                     </div>
                     {/* Label */}
-                    <div className="text-[0.68rem] font-medium tracking-[0.03em] mb-[5px]" style={{ color: "var(--text-muted)" }}>
+                    <div className="text-[0.68rem] font-medium tracking-[0.03em] mb-[5px] text-[var(--text-muted)]">
                       {s.label}
                     </div>
                     {/* Value */}
-                    <div
-                      className="text-[1.85rem] font-bold leading-none tracking-[-0.02em] mb-[10px]"
-                      style={{ color: "var(--text)", fontFamily: "'DM Mono', monospace" }}
-                    >
+                    <div className="text-[1.85rem] font-bold leading-none tracking-[-0.02em] mb-[10px] font-mono text-[var(--text)]">
                       <AnimatedNumber target={s.value} />
                     </div>
                     {/* Change */}
                     <div className="flex items-center gap-[5px]">
-                      <span className="text-[0.68rem] font-semibold" style={{ color: "var(--positive)", fontFamily: "'DM Mono', monospace" }}>
+                      <span className="text-[0.68rem] font-semibold font-mono text-[var(--positive)]">
                         ↑ {s.change}
                       </span>
-                      <span className="text-[0.65rem]" style={{ color: "var(--text-muted)" }}>vs last month</span>
+                      <span className="text-[0.65rem] text-[var(--text-muted)]">vs last month</span>
                     </div>
                   </div>
                 );
@@ -364,31 +325,26 @@ export default function PCSoftAnalytics() {
           {/* ── Quick Actions ──────────────────────── */}
           <div className="fade-up" style={{ animationDelay: "0.28s" }}>
             <SectionLabel>Quick Actions</SectionLabel>
-            <div className="grid grid-cols-3 gap-[14px]">
+            <div className="grid grid-cols-3 gap-3.5">
               {quickActions.map((qa) => {
                 const color = S[qa.stripe];
                 return (
                   <div
                     key={qa.label}
-                    className="qa-card rounded-xl p-[20px_22px] cursor-pointer"
-                    style={{
-                      background: "var(--bg-card)",
-                      border: `1px solid var(--border)`,
-                      borderTop: `2px solid ${color}`,
-                      boxShadow: "var(--shadow)",
-                    }}
+                    className="qa-card rounded-xl cursor-pointer p-[20px_22px] bg-[var(--bg-card)] border border-[var(--border)] [box-shadow:var(--shadow)]"
+                    style={{ borderTop: `2px solid ${color}` }}
                   >
                     {/* Icon */}
                     <div
-                      className="w-[38px] h-[38px] rounded-[10px] flex items-center justify-center mb-[14px]"
+                      className="flex items-center justify-center mb-3.5 rounded-lg w-[38px] h-[38px]"
                       style={{ background: `${color}1a`, border: `1px solid ${color}28` }}
                     >
                       <Icon name={qa.icon} size={17} color={color} />
                     </div>
-                    <div className="text-[0.9rem] font-semibold mb-[6px]" style={{ color: "var(--text)" }}>
+                    <div className="text-[0.9rem] font-semibold mb-[6px] text-[var(--text)]">
                       {qa.label}
                     </div>
-                    <div className="text-[0.76rem] leading-[1.55] mb-[16px]" style={{ color: "var(--text-sub)" }}>
+                    <div className="text-[0.76rem] leading-[1.55] mb-4 text-[var(--text-sub)]">
                       {qa.desc}
                     </div>
                     <div
@@ -407,22 +363,19 @@ export default function PCSoftAnalytics() {
           {/* ── Recent Activity ─────────────────────── */}
           <div className="fade-up" style={{ animationDelay: "0.42s" }}>
             <SectionLabel right={
-              <span className="text-[0.7rem] font-semibold cursor-pointer tracking-[0.01em]" style={{ color: "var(--nav-active)" }}>
+              <span className="text-[0.7rem] font-semibold cursor-pointer tracking-[0.01em] text-[var(--nav-active)]">
                 View all →
               </span>
             }>
               Recent Activity
             </SectionLabel>
 
-            <div className="rounded-xl overflow-hidden" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}>
+            <div className="rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] [box-shadow:var(--shadow)]">
               {activity.map((a, i) => (
                 <div
                   key={i}
                   className="activity-row flex items-center gap-[14px] px-[18px] py-[13px]"
-                  style={{
-                    borderBottom: i < activity.length - 1 ? "1px solid var(--divider)" : "none",
-                    background: "transparent",
-                  }}
+                  style={{ borderBottom: i < activity.length - 1 ? "1px solid var(--divider)" : "none" }}
                 >
                   {/* Icon badge */}
                   <div
@@ -432,17 +385,14 @@ export default function PCSoftAnalytics() {
                     <Icon name={a.icon} size={14} color={a.dot} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[0.8rem] font-medium whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: "var(--text)" }}>
+                    <div className="text-[0.8rem] font-medium whitespace-nowrap overflow-hidden text-ellipsis text-[var(--text)]">
                       {a.title}
                     </div>
-                    <div className="text-[0.68rem] mt-[2px]" style={{ color: "var(--text-muted)" }}>
+                    <div className="text-[0.68rem] mt-[2px] text-[var(--text-muted)]">
                       {a.sub}
                     </div>
                   </div>
-                  <div
-                    className="text-[0.63rem] shrink-0 tracking-[0.02em]"
-                    style={{ color: "var(--text-muted)", fontFamily: "'DM Mono', monospace" }}
-                  >
+                  <div className="text-[0.63rem] shrink-0 tracking-[0.02em] font-mono text-[var(--text-muted)]">
                     {a.time}
                   </div>
                 </div>
