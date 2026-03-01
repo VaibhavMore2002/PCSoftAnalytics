@@ -151,6 +151,7 @@ export default function Sidebar({
     if (label === "Home") navigate("/");
     else if (label === "Dashboards") navigate("/dashboards");
     else if (label === "Settings") navigate("/settings");
+    else if (label === "Data Sources") navigate("/datasources");
     else if (onNavClick) onNavClick(label);
   };
 

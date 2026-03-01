@@ -199,6 +199,7 @@ export default function PCSoftAnalytics() {
 
   const handleNavClick = (label) => {
     if (label === "Dashboards") navigate("/dashboards");
+    else if (label === "Data Sources") navigate("/datasources");
     else setActiveNav(label);
   };
 

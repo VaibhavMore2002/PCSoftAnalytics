@@ -99,6 +99,7 @@ export default function DashboardsPage() {
 
   const handleNavClick = (label) => {
     if (label === "Home") navigate("/");
+    else if (label === "Data Sources") navigate("/datasources");
     else setActiveNav(label);
   };
 
@@ -113,6 +114,23 @@ export default function DashboardsPage() {
     const matchesTab = activeTab === "All" || d.status === activeTab;
     return matchesSearch && matchesTab;
   });
+
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((d) => priorityDashboards.includes(d.name));
+  const someFilteredSelected =
+    filtered.some((d) => priorityDashboards.includes(d.name)) && !allFilteredSelected;
+
+  const selectAll = () => {
+    setPriorityDashboards((prev) => {
+      const toAdd = filtered.map((d) => d.name).filter((n) => !prev.includes(n));
+      return [...prev, ...toAdd];
+    });
+  };
+
+  const deselectAll = () => {
+    const filteredNames = new Set(filtered.map((d) => d.name));
+    setPriorityDashboards((prev) => prev.filter((n) => !filteredNames.has(n)));
+  };
 
   const counts = { All: DASHBOARDS.length, Active: 0, Draft: 0, Archived: 0 };
   DASHBOARDS.forEach((d) => { if (counts[d.status] !== undefined) counts[d.status]++; });
@@ -227,7 +245,44 @@ export default function DashboardsPage() {
                       style={{ textAlign: col.align || "left", width: col.width || "auto" }}
                     >
                       {col.label === "★" ? (
-                        <span className="text-[var(--nav-active)] text-[0.72rem]" title="Priority">★</span>
+                        <label
+                          className="flex items-center justify-center cursor-pointer"
+                          title={allFilteredSelected ? "Deselect all" : "Select all"}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={allFilteredSelected}
+                            onChange={() => (allFilteredSelected ? deselectAll() : selectAll())}
+                            className="sr-only"
+                          />
+                          <div
+                            className="flex items-center justify-center transition-all duration-200 rounded-sm w-[17px] h-[17px]"
+                            style={{
+                              background: allFilteredSelected
+                                ? "var(--nav-active-bg)"
+                                : someFilteredSelected
+                                ? "rgba(189,147,249,0.18)"
+                                : "transparent",
+                              border: allFilteredSelected
+                                ? "none"
+                                : "1.5px solid var(--border)",
+                              boxShadow: allFilteredSelected
+                                ? "0 2px 6px rgba(124,58,237,0.30)"
+                                : "none",
+                            }}
+                          >
+                            {allFilteredSelected && (
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                            {someFilteredSelected && (
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--nav-active)" strokeWidth="3.5">
+                                <line x1="4" y1="12" x2="20" y2="12" />
+                              </svg>
+                            )}
+                          </div>
+                        </label>
                       ) : col.label}
                     </th>
                   ))}
