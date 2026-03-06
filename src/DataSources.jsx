@@ -1,74 +1,22 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
 import { useTheme } from "./ThemeContext.jsx";
+import { useApp } from "./AppContext.jsx";
 
 /* ═══════════════════════════════════════════════════════════
-   Sample Data – databases & tables
+   Constants
    ═══════════════════════════════════════════════════════════ */
-const DATABASES = [
-  {
-    id: "prod",
-    name: "Production DB",
-    type: "PostgreSQL",
-    tables: [
-      { name: "users", cols: [
-        { name: "id", type: "INT" }, { name: "email", type: "TEXT" },
-        { name: "name", type: "VARCHAR" }, { name: "created_at", type: "DATE" },
-      ]},
-      { name: "orders", cols: [
-        { name: "id", type: "INT" }, { name: "user_id", type: "INT" },
-        { name: "total", type: "DECIMAL" }, { name: "status", type: "TEXT" },
-        { name: "created_at", type: "DATE" },
-      ]},
-      { name: "products", cols: [
-        { name: "id", type: "INT" }, { name: "name", type: "VARCHAR" },
-        { name: "price", type: "DECIMAL" }, { name: "category", type: "TEXT" },
-        { name: "stock", type: "INT" },
-      ]},
-    ],
-  },
-  {
-    id: "analytics",
-    name: "Analytics DB",
-    type: "MySQL",
-    tables: [
-      { name: "events", cols: [
-        { name: "id", type: "INT" }, { name: "user_id", type: "INT" },
-        { name: "event_type", type: "TEXT" }, { name: "payload", type: "JSON" },
-        { name: "created_at", type: "DATE" },
-      ]},
-      { name: "sessions", cols: [
-        { name: "id", type: "INT" }, { name: "user_id", type: "INT" },
-        { name: "duration", type: "INT" }, { name: "created_at", type: "DATE" },
-      ]},
-    ],
-  },
-  {
-    id: "local",
-    name: "Local DB",
-    type: "SQLite",
-    tables: [
-      { name: "cache", cols: [
-        { name: "key", type: "TEXT" }, { name: "value", type: "JSON" },
-        { name: "expires_at", type: "DATE" },
-      ]},
-      { name: "config", cols: [
-        { name: "key", type: "TEXT" }, { name: "value", type: "TEXT" },
-      ]},
-    ],
-  },
-];
-
-const ALL_TABLES = DATABASES.flatMap((db) =>
-  db.tables.map((t) => ({ ...t, dbId: db.id, dbName: db.name, dbType: db.type }))
-);
-
 const JOIN_TYPES = ["INNER", "LEFT", "RIGHT", "FULL", "CROSS"];
 
+const DOT_COLORS = ["#4ade80", "#60a5fa", "#fbbf24", "#f472b6", "#a78bfa", "#fb923c"];
+
 const TYPE_COLORS = {
-  INT: "#60a5fa", TEXT: "#4ade80", VARCHAR: "#4ade80",
-  DATE: "#fbbf24", DECIMAL: "#f472b6", JSON: "#a78bfa", BOOLEAN: "#fb923c",
+  INT: "#60a5fa", INTEGER: "#60a5fa", BIGINT: "#60a5fa", SMALLINT: "#60a5fa",
+  TEXT: "#4ade80", VARCHAR: "#4ade80", CHAR: "#4ade80", STRING: "#4ade80",
+  DATE: "#fbbf24", DATETIME: "#fbbf24", TIMESTAMP: "#fbbf24",
+  DECIMAL: "#f472b6", FLOAT: "#f472b6", DOUBLE: "#f472b6", NUMERIC: "#f472b6",
+  JSON: "#a78bfa", JSONB: "#a78bfa",
+  BOOLEAN: "#fb923c", BOOL: "#fb923c",
 };
 
 const navItems = [
@@ -84,9 +32,9 @@ const navItems = [
 /* ═══════════════════════════════════════════════════════════
    Helpers
    ═══════════════════════════════════════════════════════════ */
-function findTableByName(name) {
+function findTableByNameInList(name, tableList) {
   const lower = name.toLowerCase().trim();
-  return ALL_TABLES.find((t) => t.name.toLowerCase() === lower) || null;
+  return tableList.find((t) => t.name.toLowerCase() === lower) || null;
 }
 
 function generateSQL(canvasTables, joins, options) {
@@ -109,7 +57,7 @@ function generateSQL(canvasTables, joins, options) {
 }
 
 /** Very basic SQL parser → tables + joins */
-function parseSQL(sql) {
+function parseSQL(sql, allTables) {
   const errors = [];
   const tables = [];
   const joins = [];
@@ -119,7 +67,7 @@ function parseSQL(sql) {
     // match FROM <table>
     const fromMatch = clean.match(/FROM\s+(\w+)/i);
     if (!fromMatch) { errors.push("Missing FROM clause"); return { tables, joins, errors }; }
-    const firstTable = findTableByName(fromMatch[1]);
+    const firstTable = findTableByNameInList(fromMatch[1], allTables);
     if (!firstTable) { errors.push(`Unknown table: "${fromMatch[1]}"`); return { tables, joins, errors }; }
     tables.push(firstTable.name);
 
@@ -129,15 +77,14 @@ function parseSQL(sql) {
     while ((m = joinRe.exec(clean)) !== null) {
       const joinType = m[1].toUpperCase();
       const tableName = m[2];
-      const found = findTableByName(tableName);
+      const found = findTableByNameInList(tableName, allTables);
       if (!found) { errors.push(`Unknown table: "${tableName}"`); continue; }
       tables.push(found.name);
       const onLeft = m[4] || "";
       const onRight = m[6] || "";
       if (m[3] && m[5]) {
-        // validate columns
-        const leftTable = findTableByName(m[3]);
-        const rightTable = findTableByName(m[5]);
+        const leftTable = findTableByNameInList(m[3], allTables);
+        const rightTable = findTableByNameInList(m[5], allTables);
         if (leftTable && !leftTable.cols.find((c) => c.name === onLeft)) {
           errors.push(`Column "${onLeft}" not found in "${m[3]}"`);
         }
@@ -148,10 +95,7 @@ function parseSQL(sql) {
       joins.push({ type: joinType, table: found.name, onLeft, onRight, fromTable: m[3] || tables[0], toTable: m[5] || found.name });
     }
 
-    // check for SELECT
     if (!/SELECT/i.test(clean)) errors.push("Missing SELECT clause");
-
-    // Check for unknown keywords that might indicate a syntax issue
     const known = /^SELECT\s+.+\s+FROM\s+/i;
     if (!known.test(clean)) errors.push("Possible syntax error near SELECT/FROM");
 
@@ -164,17 +108,281 @@ function parseSQL(sql) {
 function uid() { return Math.random().toString(36).slice(2, 9); }
 
 /* ═══════════════════════════════════════════════════════════
+   Chart helpers
+   ═══════════════════════════════════════════════════════════ */
+function TblDonut({ segments, size = 100, thickness = 18, label, sublabel }) {
+  const r = (size - thickness) / 2;
+  const cx = size / 2, cy = size / 2;
+  const circ = 2 * Math.PI * r;
+  const total = segments.reduce((s, x) => s + x.value, 0);
+  let offsetAcc = 0;
+  const arcs = segments.map((seg) => {
+    const pct = total > 0 ? seg.value / total : 0;
+    const dash = pct * circ;
+    const arc = { ...seg, dash, gap: circ - dash, offset: offsetAcc * circ };
+    offsetAcc += pct;
+    return arc;
+  });
+  return (
+    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        {total === 0
+          ? <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={thickness} />
+          : arcs.map((arc, i) => (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+              stroke={arc.color} strokeWidth={thickness}
+              strokeDasharray={`${arc.dash} ${arc.gap}`}
+              strokeDashoffset={-arc.offset}
+              strokeLinecap="round"
+            />
+          ))
+        }
+      </svg>
+      <div className="absolute flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-[1.2rem] font-bold leading-none text-[var(--text)]">{label}</span>
+        {sublabel && <span className="text-[0.57rem] text-[var(--text-muted)] mt-[2px]">{sublabel}</span>}
+      </div>
+    </div>
+  );
+}
+
+function TblHBar({ items }) {
+  const max = Math.max(...items.map((x) => x.value), 1);
+  return (
+    <div className="flex flex-col gap-[7px]">
+      {items.map((item, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <div className="text-[0.63rem] text-[var(--text)] truncate" style={{ minWidth: 80, maxWidth: 80 }}>{item.label}</div>
+          <div className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+            <div className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${Math.round((item.value / max) * 100)}%`, background: item.color || "var(--nav-active)" }} />
+          </div>
+          <div className="text-[0.63rem] font-semibold text-[var(--text-muted)]" style={{ minWidth: 24, textAlign: "right" }}>{item.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Table Analytics Modal ─────────────────────────────── */
+function TableAnalyticsModal({ tableInfo, columns, loading, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const TYPE_FAMILIES = {
+    Number: ["INT","INTEGER","BIGINT","SMALLINT","DECIMAL","FLOAT","DOUBLE","NUMERIC","SERIAL","MONEY"],
+    Text:   ["TEXT","VARCHAR","CHAR","STRING","NVARCHAR","CLOB"],
+    Date:   ["DATE","DATETIME","TIMESTAMP","TIME","INTERVAL"],
+    JSON:   ["JSON","JSONB","ARRAY"],
+    Bool:   ["BOOLEAN","BOOL","BIT"],
+  };
+  const FAMILY_COLORS = { Number: "#60a5fa", Text: "#4ade80", Date: "#fbbf24", JSON: "#a78bfa", Bool: "#fb923c", Other: "#94a3b8" };
+  const PALETTE = ["#7c3aed","#3b82f6","#4ade80","#f59e0b","#f43f5e","#a78bfa","#fb923c","#06b6d4"];
+
+  const familyCounts = {};
+  columns.forEach((c) => {
+    const t = (c.type || "").toUpperCase();
+    let fam = "Other";
+    for (const [name, types] of Object.entries(TYPE_FAMILIES)) {
+      if (types.includes(t)) { fam = name; break; }
+    }
+    familyCounts[fam] = (familyCounts[fam] || 0) + 1;
+  });
+
+  const donutSegs = Object.entries(familyCounts).map(([f, n]) => ({ label: f, value: n, color: FAMILY_COLORS[f] }));
+
+  const typeCounts = {};
+  columns.forEach((c) => { const t = (c.type || "UNKNOWN").toUpperCase(); typeCounts[t] = (typeCounts[t] || 0) + 1; });
+  const typeBarItems = Object.entries(typeCounts)
+    .sort((a, b) => b[1] - a[1]).slice(0, 10)
+    .map(([t, n], i) => ({ label: t, value: n, color: TYPE_COLORS[t] || PALETTE[i % PALETTE.length] }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto py-10 px-4"
+      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}>
+      <div ref={ref}
+        className="w-full max-w-[820px] rounded-2xl flex flex-col overflow-hidden"
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "0 24px 80px rgba(0,0,0,0.45)" }}>
+
+        {/* Header */}
+        <div className="flex items-center gap-4 px-6 py-5" style={{ borderBottom: "1px solid var(--border)" }}>
+          <div className="flex items-center justify-center w-[44px] h-[44px] rounded-[12px] shrink-0"
+            style={{ background: "var(--nav-active-bg)" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[0.59rem] font-semibold tracking-[0.1em] uppercase text-[var(--text-muted)]">
+              {tableInfo.sourceName} · <span className="text-[var(--nav-active)]">{tableInfo.schema}</span> · Table Analytics
+            </div>
+            <div className="text-[1.1rem] font-bold text-[var(--text)] truncate">{tableInfo.name}</div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[0.63rem] font-bold px-[10px] py-[4px] rounded-full tracking-[0.06em] uppercase"
+              style={{ background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.3)", color: "#60a5fa" }}>
+              {tableInfo.dbType}
+            </span>
+            <button onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-[8px] cursor-pointer transition-colors hover:bg-[var(--bg-input)]"
+              style={{ color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Stats strip */}
+        <div className="grid grid-cols-5 divide-x divide-[var(--border)]" style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-input)" }}>
+          {[
+            { label: "Total Columns", val: columns.length },
+            { label: "Numeric",       val: familyCounts["Number"] ?? 0 },
+            { label: "Text",          val: familyCounts["Text"] ?? 0 },
+            { label: "Date / Time",   val: familyCounts["Date"] ?? 0 },
+            { label: "Other",         val: (familyCounts["JSON"] ?? 0) + (familyCounts["Bool"] ?? 0) + (familyCounts["Other"] ?? 0) },
+          ].map(({ label, val }) => (
+            <div key={label} className="flex flex-col items-center justify-center py-3 gap-[2px]">
+              <span className="text-[1.1rem] font-bold text-[var(--text)]">{loading ? "…" : val}</span>
+              <span className="text-[0.57rem] font-medium tracking-[0.06em] uppercase text-[var(--text-muted)]">{label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-6 flex flex-col gap-5 overflow-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-12 gap-2 opacity-60">
+              <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--nav-active)" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+              <span className="text-[0.78rem] text-[var(--text-muted)]">Loading columns…</span>
+            </div>
+          ) : columns.length === 0 ? (
+            <div className="text-center py-12 text-[0.78rem] text-[var(--text-muted)] opacity-60">No column data available</div>
+          ) : (
+            <>
+              {/* Charts row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Donut: type families */}
+                <div className="rounded-xl p-4 flex flex-col" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+                  <div className="text-[0.59rem] font-bold tracking-[0.1em] uppercase text-[var(--text-muted)] mb-3">Column Type Families</div>
+                  <div className="flex items-center gap-4">
+                    <TblDonut segments={donutSegs.length ? donutSegs : [{ value: 1, color: "var(--border)" }]}
+                      size={100} thickness={18} label={columns.length} sublabel="cols" />
+                    <div className="flex flex-col gap-[7px]">
+                      {donutSegs.map((s) => (
+                        <div key={s.label} className="flex items-center gap-2">
+                          <div className="w-[8px] h-[8px] rounded-full shrink-0" style={{ background: s.color }} />
+                          <span className="text-[0.65rem] text-[var(--text)]">{s.label}</span>
+                          <span className="text-[0.65rem] font-bold ml-auto pl-3 text-[var(--text)]">{s.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bar: raw data types */}
+                <div className="rounded-xl p-4" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+                  <div className="text-[0.59rem] font-bold tracking-[0.1em] uppercase text-[var(--text-muted)] mb-3">Columns by Data Type</div>
+                  <TblHBar items={typeBarItems} />
+                </div>
+              </div>
+
+              {/* Full column list */}
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+                <div className="text-[0.59rem] font-bold tracking-[0.1em] uppercase text-[var(--text-muted)] px-4 py-3 flex items-center justify-between"
+                  style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-input)" }}>
+                  <span>All Columns</span>
+                  <span className="text-[var(--nav-active)]">{columns.length}</span>
+                </div>
+                <div className="divide-y divide-[var(--divider)] max-h-[300px] overflow-auto">
+                  {columns.map((col, i) => {
+                    const tc = TYPE_COLORS[(col.type || "").toUpperCase()] || "#94a3b8";
+                    return (
+                      <div key={i} className="flex items-center gap-3 px-4 py-[7px]"
+                        style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
+                        <span className="text-[0.58rem] font-semibold w-6 text-right shrink-0 text-[var(--text-muted)]">{i + 1}</span>
+                        <div className="text-[0.50rem] font-bold px-[5px] py-[2px] rounded-[4px] shrink-0"
+                          style={{ background: `${tc}18`, color: tc, border: `1px solid ${tc}30` }}>
+                          {col.type || "?"}
+                        </div>
+                        <span className="text-[0.73rem] font-medium text-[var(--text)] flex-1 truncate">{col.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
    Main Component
    ═══════════════════════════════════════════════════════════ */
 export default function DataSourcesPage() {
   const { isDark } = useTheme();
-  const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState("Data Sources");
+  const { navItems, activeNav, handleNavClick, api } = useApp();
   const [search, setSearch] = useState("");
-  const [expandedDb, setExpandedDb] = useState("prod");
+  const [expandedDb, setExpandedDb] = useState(null);
 
-  // Canvas state
+  // API-driven data sources
+  const [dataSources, setDataSources] = useState([]);
+  const [tablesBySource, setTablesBySource] = useState({}); // sourceId → table[]
+  const [columnsByTable, setColumnsByTable] = useState({}); // `${sourceId}-${schema}-${tbl}` → col[]
+  const [dsLoading, setDsLoading] = useState(true);
+
+  // Fetch data sources on mount
+  useEffect(() => {
+    let cancelled = false;
+    setDsLoading(true);
+    api("/api/v1/data-sources/", {}, { limit: 100 })
+      .then((data) => {
+        if (cancelled) return;
+        const list = data?.data_sources || data?.items || (Array.isArray(data) ? data : []);
+        setDataSources(list);
+        if (list.length > 0) setExpandedDb(list[0].id);
+      })
+      .catch(() => { /* ignore – show empty state */ })
+      .finally(() => { if (!cancelled) setDsLoading(false); });
+    return () => { cancelled = true; };
+  }, [api]);
+
+  // Fetch tables when a data source is expanded
+  useEffect(() => {
+    if (!expandedDb || tablesBySource[expandedDb] !== undefined) return;
+    let cancelled = false;
+    api(`/api/v1/data-sources/${expandedDb}/tables`)
+      .then((tables) => {
+        if (cancelled) return;
+        const normalized = (Array.isArray(tables) ? tables : []).map((t) => ({
+          name: t.table_name,
+          schema: t.schema_name || "public",
+          cols: [], // lazy-loaded
+          _raw: t,
+        }));
+        setTablesBySource((prev) => ({ ...prev, [expandedDb]: normalized }));
+      })
+      .catch(() => {
+        if (!cancelled) setTablesBySource((prev) => ({ ...prev, [expandedDb]: [] }));
+      });
+    return () => { cancelled = true; };
+  }, [expandedDb, api, tablesBySource]);
+
+  // Canvas tables (tables currently placed on the visual canvas)
   const [canvasTables, setCanvasTables] = useState([]);
+
+  // All flat tables from loaded sources (for SQL parsing)
+  const allCanvasTables = useMemo(() => {
+    return Object.values(tablesBySource).flat();
+  }, [tablesBySource]);
   const [joins, setJoins] = useState([]);
   const [draggingTable, setDraggingTable] = useState(null);
   const [dragOverCanvas, setDragOverCanvas] = useState(false);
@@ -201,18 +409,43 @@ export default function DataSourcesPage() {
   // Zoom
   const [zoom, setZoom] = useState(100);
 
+  // Table analytics modal
+  const [selectedTableInfo, setSelectedTableInfo] = useState(null); // { name, schema, sourceId, sourceName, dbType }
+  const [tableAnalyticsColumns, setTableAnalyticsColumns] = useState([]);
+  const [tableAnalyticsLoading, setTableAnalyticsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedTableInfo) return;
+    const { sourceId, schema, name } = selectedTableInfo;
+    const cacheKey = `${sourceId}-${schema}-${name}`;
+    if (columnsByTable[cacheKey]) {
+      setTableAnalyticsColumns(columnsByTable[cacheKey]);
+      setTableAnalyticsLoading(false);
+      return;
+    }
+    setTableAnalyticsColumns([]);
+    setTableAnalyticsLoading(true);
+    let cancelled = false;
+    api(`/api/v1/data-sources/${sourceId}/tables/${schema}/${name}/columns`)
+      .then((cols) => {
+        if (cancelled) return;
+        const normalized = (Array.isArray(cols) ? cols : []).map((c) => ({
+          name: c.column_name,
+          type: (c.data_type || "TEXT").toUpperCase(),
+        }));
+        setColumnsByTable((prev) => ({ ...prev, [cacheKey]: normalized }));
+        setTableAnalyticsColumns(normalized);
+      })
+      .catch(() => { if (!cancelled) setTableAnalyticsColumns([]); })
+      .finally(() => { if (!cancelled) setTableAnalyticsLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedTableInfo, api]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const logo = (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
     </svg>
   );
-
-  const handleNavClick = (label) => {
-    if (label === "Home") navigate("/");
-    else if (label === "Dashboards") navigate("/dashboards");
-    else if (label === "Data Sources") navigate("/datasources");
-    else setActiveNav(label);
-  };
 
   /* ── Generate SQL from canvas ─────────────────────── */
   const regenerateSQL = useCallback(() => {
@@ -227,7 +460,7 @@ export default function DataSourcesPage() {
 
   /* ── Parse SQL → update canvas (vice versa) ─────── */
   const applySQL = useCallback(() => {
-    const { tables, joins: parsedJoins, errors } = parseSQL(sqlText);
+    const { tables, joins: parsedJoins, errors } = parseSQL(sqlText, allCanvasTables);
     setSqlErrors(errors);
     if (errors.length > 0 && tables.length === 0) return;
     // Build canvas tables
@@ -237,13 +470,13 @@ export default function DataSourcesPage() {
     const gapY = 200;
     tables.forEach((tName, i) => {
       const existing = canvasTables.find((ct) => ct.name === tName);
-      const meta = findTableByName(tName);
+      const meta = findTableByNameInList(tName, allCanvasTables);
       if (!meta) return;
       newTables.push({
         id: existing?.id || uid(),
         name: meta.name,
         cols: meta.cols,
-        dbName: meta.dbName,
+        dbName: meta.dbName || "",
         x: existing?.x ?? baseX + (i % 2) * gapX,
         y: existing?.y ?? 60 + Math.floor(i / 2) * gapY,
       });
@@ -288,10 +521,40 @@ export default function DataSourcesPage() {
       setDraggingTable(null);
       return;
     }
+    const tableId = uid();
+    // Add to canvas immediately with empty cols (will be filled when fetched)
     setCanvasTables((prev) => [
       ...prev,
-      { id: uid(), name: draggingTable.name, cols: draggingTable.cols, dbName: draggingTable.dbName, x, y },
+      { id: tableId, name: draggingTable.name, cols: draggingTable.cols || [], dbName: draggingTable.dbName || "", x, y },
     ]);
+    // Fetch columns if not cached
+    if (draggingTable.cols && draggingTable.cols.length === 0 && draggingTable.sourceId) {
+      const cacheKey = `${draggingTable.sourceId}-${draggingTable.schema}-${draggingTable.name}`;
+      if (!columnsByTable[cacheKey]) {
+        api(`/api/v1/data-sources/${draggingTable.sourceId}/tables/${draggingTable.schema}/${draggingTable.name}/columns`)
+          .then((cols) => {
+            const normalized = (Array.isArray(cols) ? cols : []).map((c) => ({
+              name: c.column_name,
+              type: (c.data_type || "TEXT").toUpperCase(),
+            }));
+            setColumnsByTable((prev) => ({ ...prev, [cacheKey]: normalized }));
+            setCanvasTables((prev) =>
+              prev.map((t) => t.id === tableId ? { ...t, cols: normalized } : t)
+            );
+            setTablesBySource((prev) => {
+              const src = prev[draggingTable.sourceId];
+              if (!src) return prev;
+              return {
+                ...prev,
+                [draggingTable.sourceId]: src.map((t) =>
+                  t.name === draggingTable.name ? { ...t, cols: normalized } : t
+                ),
+              };
+            });
+          })
+          .catch(() => {/* silently fail – show table without cols */});
+      }
+    }
     setDraggingTable(null);
     setEditingSQL(false);
   };
@@ -392,13 +655,24 @@ export default function DataSourcesPage() {
 
   /* ── Filtered sidebar tables ───────────────────── */
   const filteredDBs = useMemo(() => {
-    if (!search) return DATABASES;
+    const dbList = dataSources.map((src, idx) => ({
+      id: src.id,
+      name: src.name,
+      type: src.database_type || src.type || src.connection_type || "Database",
+      tables: tablesBySource[src.id] || [],
+      dotColor: DOT_COLORS[idx % DOT_COLORS.length],
+    }));
+    if (!search) return dbList;
     const q = search.toLowerCase();
-    return DATABASES.map((db) => ({
-      ...db,
-      tables: db.tables.filter((t) => t.name.toLowerCase().includes(q) || t.cols.some((c) => c.name.toLowerCase().includes(q))),
-    })).filter((db) => db.tables.length > 0 || db.name.toLowerCase().includes(q));
-  }, [search]);
+    return dbList
+      .map((db) => ({
+        ...db,
+        tables: db.tables.filter(
+          (t) => t.name.toLowerCase().includes(q) || t.cols.some((c) => c.name.toLowerCase().includes(q))
+        ),
+      }))
+      .filter((db) => db.tables.length > 0 || db.name.toLowerCase().includes(q));
+  }, [dataSources, tablesBySource, search]);
 
   /* ── Joins panel data ──────────────────────────── */
   const joinsData = joins.map((j) => {
@@ -505,17 +779,27 @@ export default function DataSourcesPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-2 pb-3 qf-scrollbar">
-              {filteredDBs.map((db) => {
+              {dsLoading ? (
+                <div className="flex items-center justify-center py-8 gap-2">
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nav-active)" strokeWidth="2.5">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  <span className="text-[0.68rem] text-[var(--text-muted)]">Loading…</span>
+                </div>
+              ) : filteredDBs.length === 0 ? (
+                <div className="text-center py-8">
+                  <span className="text-[0.68rem] text-[var(--text-muted)]">No data sources</span>
+                </div>
+              ) : filteredDBs.map((db) => {
                 const isExpanded = expandedDb === db.id;
+                const tablesLoading = !tablesBySource[db.id];
                 return (
                   <div key={db.id} className="mb-0.5">
                     <div
                       className="flex items-center gap-2 px-2 py-[6px] rounded-[7px] cursor-pointer transition-all duration-150 hover:bg-[var(--bg-hover)]"
                       onClick={() => setExpandedDb(isExpanded ? null : db.id)}
                     >
-                      <div className="w-2 h-2 rounded-full shrink-0"
-                        style={{ background: db.id === "prod" ? "#4ade80" : db.id === "analytics" ? "#60a5fa" : "#fbbf24" }}
-                      />
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ background: db.dotColor }} />
                       <div className="flex-1 min-w-0">
                         <div className="text-[0.74rem] font-semibold text-[var(--text)] truncate">{db.name}</div>
                         <div className="text-[0.58rem] text-[var(--text-muted)]">{db.type}</div>
@@ -528,40 +812,58 @@ export default function DataSourcesPage() {
                       </svg>
                     </div>
 
-                    <div
-                      className="overflow-hidden transition-all duration-300"
-                      style={{ maxHeight: isExpanded ? `${db.tables.length * 36 + 10}px` : "0px", opacity: isExpanded ? 1 : 0 }}
-                    >
+                    {isExpanded && (
                       <div className="ml-4 border-l border-l-[var(--border)] pl-2 py-0.5 space-y-0.5">
-                        {db.tables.map((t) => {
-                          const meta = { ...t, dbId: db.id, dbName: db.name, dbType: db.type };
+                        {tablesLoading ? (
+                          <div className="flex items-center gap-1.5 py-2 px-2">
+                            <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5">
+                              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                            </svg>
+                            <span className="text-[0.64rem] text-[var(--text-muted)]">Loading tables…</span>
+                          </div>
+                        ) : db.tables.length === 0 ? (
+                          <div className="py-2 px-2">
+                            <span className="text-[0.64rem] text-[var(--text-muted)]">No tables found</span>
+                          </div>
+                        ) : db.tables.map((t) => {
+                          const meta = { ...t, dbId: db.id, sourceId: db.id, dbName: db.name, dbType: db.type };
                           const onCanvas = canvasTables.some((ct) => ct.name === t.name);
+                          const isSelected = selectedTableInfo?.name === t.name && selectedTableInfo?.sourceId === db.id;
                           return (
                             <div
                               key={t.name}
                               draggable
                               onDragStart={(e) => handleDragStartSidebar(e, meta)}
-                              className={`flex items-center gap-2 px-2 py-[5px] rounded-[6px] cursor-grab active:cursor-grabbing transition-all duration-100 ${onCanvas ? "" : "hover:bg-[var(--bg-hover)]"}`}
+                              onClick={() => setSelectedTableInfo({
+                                name: t.name,
+                                schema: t.schema || "public",
+                                sourceId: db.id,
+                                sourceName: db.name,
+                                dbType: db.type,
+                              })}
+                              className={`flex items-center gap-2 px-2 py-[5px] rounded-[6px] cursor-pointer transition-all duration-100 ${isSelected ? "" : onCanvas ? "" : "hover:bg-[var(--bg-hover)]"}`}
                               style={{
-                                background: onCanvas ? "var(--bg-active)" : "transparent",
-                                border: onCanvas ? "1px solid var(--border-active)" : "1px solid transparent",
+                                background: isSelected ? "var(--nav-active-bg)" : onCanvas ? "var(--bg-active)" : "transparent",
+                                border: isSelected ? "1px solid var(--nav-active)" : onCanvas ? "1px solid var(--border-active)" : "1px solid transparent",
                               }}
                             >
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={onCanvas ? "var(--nav-active)" : "var(--text-muted)"} strokeWidth="2">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={isSelected ? "#fff" : onCanvas ? "var(--nav-active)" : "var(--text-muted)"} strokeWidth="2">
                                 <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18" />
                               </svg>
-                              <span className={`text-[0.70rem] flex-1 truncate ${onCanvas ? "text-[var(--nav-active)] font-semibold" : "text-[var(--text-muted)]"}`}>
+                              <span className={`text-[0.70rem] flex-1 truncate ${isSelected ? "text-white font-semibold" : onCanvas ? "text-[var(--nav-active)] font-semibold" : "text-[var(--text-muted)]"}`}>
                                 {t.name}
                               </span>
-                              <span className="text-[0.55rem] px-[4px] py-[1px] rounded-full bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)]">
-                                {t.cols.length}c
-                              </span>
+                              {t.cols.length > 0 && (
+                                <span className="text-[0.55rem] px-[4px] py-[1px] rounded-full bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)]">
+                                  {t.cols.length}c
+                                </span>
+                              )}
                               {onCanvas && <span className="text-[0.50rem] text-[var(--nav-active)]">●</span>}
                             </div>
                           );
                         })}
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -1066,6 +1368,16 @@ export default function DataSourcesPage() {
           <span className="text-[0.68rem] text-[var(--text-muted)]">Joins: <strong className="text-[var(--nav-active)]">{joins.length}</strong></span>
         </div>
       </div>
+
+      {/* Table analytics modal */}
+      {selectedTableInfo && (
+        <TableAnalyticsModal
+          tableInfo={selectedTableInfo}
+          columns={tableAnalyticsColumns}
+          loading={tableAnalyticsLoading}
+          onClose={() => setSelectedTableInfo(null)}
+        />
+      )}
     </div>
   );
 }

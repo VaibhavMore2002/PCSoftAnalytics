@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "./ThemeContext.jsx";
+import { useApp } from "./AppContext.jsx";
 
 // ── Icons ──────────────────────────────────────────────────
 function Icon({ name, size = 18, color = "currentColor" }) {
@@ -145,13 +146,21 @@ export default function Sidebar({
 }) {
   const [minimized, setMinimized] = useState(initialMinimized);
   const { isDark, toggleDark } = useTheme();
+  const { logout, user } = useApp();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   const handleNavClickInternal = (label) => {
     if (label === "Home") navigate("/");
     else if (label === "Dashboards") navigate("/dashboards");
     else if (label === "Settings") navigate("/settings");
     else if (label === "Data Sources") navigate("/datasources");
+    else if (label === "Data Sets") navigate("/datasets");
+    else if (label === "Profile") navigate("/profile");
     else if (onNavClick) onNavClick(label);
   };
 
@@ -331,6 +340,7 @@ export default function Sidebar({
         <div
           className={`sb-logout flex items-center ${minimized ? "justify-center gap-0 p-2" : "justify-start gap-2 py-2 px-3"} rounded-lg cursor-pointer mt-1 bg-[var(--logout-bg)] border border-[var(--logout-border)] text-[var(--logout-color)]`}
           title={minimized ? "Logout" : ""}
+          onClick={handleLogout}
         >
           <Icon name="logout" size={17} color="var(--logout-color)" />
           {!minimized && (

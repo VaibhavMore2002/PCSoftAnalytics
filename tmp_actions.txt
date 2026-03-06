@@ -1,0 +1,1 @@
+["user_create","user_update","user_delete","user_activate","user_deactivate","password_change","password_reset","role_change","login_success","login_failure","logout","profile_update","content_share","content_unshare"]
