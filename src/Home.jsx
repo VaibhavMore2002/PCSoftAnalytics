@@ -632,7 +632,7 @@ export default function PCSoftAnalytics() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* ── Top bar ───────────────────────────────── */}
-        <div className="flex items-center justify-between px-7 pt-7 pb-3 shrink-0 transition-colors duration-300 gap-6 border-b border-b-[var(--border)] bg-[var(--topbar-bg)]">
+        <div className="flex items-center justify-between px-7 pt-5 pb-5 shrink-0 transition-colors duration-300 gap-6 border-b border-b-[var(--border)] bg-[var(--topbar-bg)]">
           {/* ── Left: Data Sources section ─────────── */}
           <div className="flex items-center gap-4 flex-1 min-w-0">
             {/* Data Sources label */}

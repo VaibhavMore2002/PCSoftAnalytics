@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "./ThemeContext.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -136,15 +136,57 @@ function Icon({ name, size = 18, color = "currentColor" }) {
   return icons[name] || null;
 }
 
+// ── Route → nav label map ──────────────────────────────────
+// Maps URL path prefixes to nav item labels.
+// Add entries here whenever you add new routes.
+const ROUTE_LABEL_MAP = [
+  { path: "/dashboards", label: "Dashboards" },
+  { path: "/datasources", label: "Data Sources" },
+  { path: "/datasets",    label: "Data Sets" },
+  { path: "/settings",    label: "Settings" },
+  { path: "/profile",     label: "Profile" },
+  { path: "/subscriptions", label: "Subscriptions" },
+  { path: "/",            label: "Home" },   // keep "/" last — it's the catch-all
+];
+
+function useLabelFromPath(navItems) {
+  const { pathname } = useLocation();
+  // Find the longest prefix match so "/datasets/1" matches "Data Sets" before "Home"
+  const sorted = [...ROUTE_LABEL_MAP].sort((a, b) => b.path.length - a.path.length);
+  const match = sorted.find(({ path }) => pathname.startsWith(path));
+  return match ? match.label : null;
+}
+
 // ── Sidebar ────────────────────────────────────────────────
 export default function Sidebar({
   navItems,
   onNavClick,
-  activeNav,
+  // activeNav prop is now IGNORED in favour of URL-derived state.
+  // Keep it in the signature so callers don't need to change.
+  activeNav: _activeNavProp,
   logo,
   minimized: initialMinimized = false,
 }) {
-  const [minimized, setMinimized] = useState(initialMinimized);
+  // ── Persist collapsed state in sessionStorage ──────────
+  const [minimized, setMinimized] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem("sidebar-minimized");
+      if (stored !== null) return stored === "true";
+    } catch (_) {}
+    return initialMinimized;
+  });
+
+  const toggleMinimized = () => {
+    setMinimized((prev) => {
+      const next = !prev;
+      try { sessionStorage.setItem("sidebar-minimized", String(next)); } catch (_) {}
+      return next;
+    });
+  };
+
+  // ── Derive activeNav from current URL ─────────────────
+  const activeNav = useLabelFromPath(navItems);
+
   const { isDark, toggleDark } = useTheme();
   const { logout, user } = useApp();
   const navigate = useNavigate();
@@ -161,6 +203,7 @@ export default function Sidebar({
     else if (label === "Data Sources") navigate("/datasources");
     else if (label === "Data Sets") navigate("/datasets");
     else if (label === "Profile") navigate("/profile");
+    else if (label === "Subscriptions") navigate("/subscriptions");
     else if (onNavClick) onNavClick(label);
   };
 
@@ -172,7 +215,7 @@ export default function Sidebar({
       {/* ── Collapse button ──────────────────────────── */}
       <div
         className="sb-collapse-btn absolute -right-4 top-[60px] w-8 h-8 rounded-full flex items-center justify-center cursor-pointer z-20 shrink-0 bg-[var(--collapse-btn)] [box-shadow:var(--logo-glow)] transition-[box-shadow,background] duration-200"
-        onClick={() => setMinimized(!minimized)}
+        onClick={toggleMinimized}
         title={minimized ? "Expand" : "Collapse"}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8">

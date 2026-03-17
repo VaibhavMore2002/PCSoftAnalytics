@@ -4,6 +4,9 @@
     --font-sans: 'DM Sans', sans-serif;
 }
 
+* {
+    font-family: var(--font-sans) !important;
+}
 /* ─────────────────────────────────────────
    Light mode tokens (default)
 ───────────────────────────────────────── */

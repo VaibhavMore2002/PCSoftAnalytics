@@ -294,10 +294,16 @@ export default function DataSetEditor() {
     !sourceSearch || s.name?.toLowerCase().includes(sourceSearch.toLowerCase())
   );
 
+  const logo = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  );
+
   if (loading) {
     return (
       <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
-        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} />
+        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} logo={logo} />
         <div className="flex-1 flex items-center justify-center gap-3">
           <Spin /> <span className="text-sm text-[var(--text-muted)]">Loading…</span>
         </div>

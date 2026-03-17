@@ -408,11 +408,17 @@ export default function Dashboard() {
   const af = filters.filter((f) => f.is_active);
   const sColor = status.toLowerCase() === "active" ? "#4ade80" : status.toLowerCase() === "draft" ? "#fbbf24" : "#94a3b8";
 
+  const logo = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  );
+
   return (
     <>
       <style>{CSS}</style>
       <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
-        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} />
+        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} logo={logo} />
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* ── Premium Header ───────────────────────────────────────── */}

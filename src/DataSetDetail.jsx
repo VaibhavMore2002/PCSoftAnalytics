@@ -44,26 +44,26 @@ const btnS = "px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer bg-[var(
 
 /* ── Badge colors ── */
 const STATUS_COLORS = {
-  active:   { bg: "rgba(74,222,128,.12)", color: "#4ade80", border: "rgba(74,222,128,.25)" },
-  draft:    { bg: "rgba(250,204,21,.12)", color: "#facc15", border: "rgba(250,204,21,.25)" },
+  active:   { bg: "rgba(74,222,128,.12)",  color: "#4ade80", border: "rgba(74,222,128,.25)" },
+  draft:    { bg: "rgba(250,204,21,.12)",  color: "#facc15", border: "rgba(250,204,21,.25)" },
   archived: { bg: "rgba(148,163,184,.12)", color: "#94a3b8", border: "rgba(148,163,184,.25)" },
 };
 const TYPE_COLORS = {
-  join:  { bg: "rgba(99,102,241,.10)", color: "#818cf8", border: "rgba(99,102,241,.25)" },
-  union: { bg: "rgba(245,158,11,.10)", color: "#fbbf24", border: "rgba(245,158,11,.25)" },
-  sql:   { bg: "rgba(6,182,212,.10)",  color: "#22d3ee", border: "rgba(6,182,212,.25)" },
+  join:  { bg: "rgba(99,102,241,.10)",  color: "#818cf8", border: "rgba(99,102,241,.25)" },
+  union: { bg: "rgba(245,158,11,.10)",  color: "#fbbf24", border: "rgba(245,158,11,.25)" },
+  sql:   { bg: "rgba(6,182,212,.10)",   color: "#22d3ee", border: "rgba(6,182,212,.25)" },
 };
 const SYNC_COLORS = {
   success: { bg: "rgba(74,222,128,.12)", color: "#4ade80", border: "rgba(74,222,128,.25)" },
   running: { bg: "rgba(96,165,250,.12)", color: "#60a5fa", border: "rgba(96,165,250,.25)" },
-  failed:  { bg: "rgba(248,113,113,.12)", color: "#f87171", border: "rgba(248,113,113,.25)" },
+  failed:  { bg: "rgba(248,113,113,.12)",color: "#f87171", border: "rgba(248,113,113,.25)" },
   pending: { bg: "rgba(250,204,21,.12)", color: "#facc15", border: "rgba(250,204,21,.25)" },
 };
 const MAT_COLORS = {
-  success:    { bg: "rgba(74,222,128,.12)", color: "#4ade80", border: "rgba(74,222,128,.25)" },
-  failed:     { bg: "rgba(248,113,113,.12)", color: "#f87171", border: "rgba(248,113,113,.25)" },
-  running:    { bg: "rgba(96,165,250,.12)", color: "#60a5fa", border: "rgba(96,165,250,.25)" },
-  pending:    { bg: "rgba(250,204,21,.12)", color: "#facc15", border: "rgba(250,204,21,.25)" },
+  success: { bg: "rgba(74,222,128,.12)", color: "#4ade80", border: "rgba(74,222,128,.25)" },
+  failed:  { bg: "rgba(248,113,113,.12)",color: "#f87171", border: "rgba(248,113,113,.25)" },
+  running: { bg: "rgba(96,165,250,.12)", color: "#60a5fa", border: "rgba(96,165,250,.25)" },
+  pending: { bg: "rgba(250,204,21,.12)", color: "#facc15", border: "rgba(250,204,21,.25)" },
 };
 
 function Badge({ label, bg, color, border }) {
@@ -146,7 +146,6 @@ export default function DataSetDetail() {
 
   useEffect(() => { fetchDataset(); }, [fetchDataset]);
 
-  /* ── Actions ── */
   const handleSync = async () => {
     setSyncing(true);
     try {
@@ -167,10 +166,16 @@ export default function DataSetDetail() {
     setMaterializing(false);
   };
 
+  const logo = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  );
+
   if (loading) {
     return (
       <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
-        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} />
+        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} logo={logo} />
         <div className="flex-1 flex items-center justify-center gap-3">
           <Spin /> <span className="text-sm text-[var(--text-muted)]">Loading dataset…</span>
         </div>
@@ -181,7 +186,7 @@ export default function DataSetDetail() {
   if (!ds) {
     return (
       <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
-        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} />
+        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} logo={logo} />
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
           <p className="text-sm text-[var(--text-muted)]">Dataset not found.</p>
           <button className={btnS} onClick={() => navigate("/datasets")}>
@@ -194,27 +199,27 @@ export default function DataSetDetail() {
 
   const sc = STATUS_COLORS[ds.status] || STATUS_COLORS.draft;
   const tc = TYPE_COLORS[ds.definition_type] || TYPE_COLORS.join;
-  const sources = ds.definition?.sources || [];
-  const columns = ds.definition?.columns || [];
-  const tables = ds.definition?.tables || [];
-  const joins = ds.definition?.joins || [];
+  const sources    = ds.definition?.sources  || [];
+  const columns    = ds.definition?.columns  || [];
+  const tables     = ds.definition?.tables   || [];
+  const joins      = ds.definition?.joins    || [];
   const outputCols = ds.output_definition?.columns || [];
 
   const tabs = [
-    { id: "overview", label: "Overview" },
-    { id: "columns", label: `Columns (${(outputCols.length || columns.length)})` },
-    { id: "sources", label: `Sources (${sources.length})` },
-    { id: "definition", label: "View Definition" },
-    { id: "sync", label: "Sync & Materialization" },
+    { id: "overview",    label: "Overview" },
+    { id: "columns",     label: `Columns (${outputCols.length || columns.length})` },
+    { id: "sources",     label: `Sources (${sources.length})` },
+    { id: "definition",  label: "View Definition" },
+    { id: "sync",        label: "Sync & Materialization" },
   ];
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
-      <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} />
+      <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} logo={logo} />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* ── Header ── */}
-        <header className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--bg-card)]">
+        <header className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--bg-card)] shrink-0">
           <div className="flex items-center gap-3">
             <button className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
               onClick={() => navigate("/datasets")}>
@@ -224,11 +229,11 @@ export default function DataSetDetail() {
               style={{ background: tc.bg, border: `1px solid ${tc.border}` }}>
               <I d={ico.layers} size={16} color={tc.color} />
             </div>
-            <div>
-              <h1 className="text-sm font-bold">{ds.name}</h1>
+            <div className="flex ">
+              <h1 className="text-sm font-bold ml-4 mr-4">{ds.name}</h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <Badge label={ds.definition_type || "—"} bg={tc.bg} color={tc.color} border={tc.border} />
-                <Badge label={ds.status || "—"} bg={sc.bg} color={sc.color} border={sc.border} />
+                <Badge label={ds.status || "—"}          bg={sc.bg} color={sc.color} border={sc.border} />
                 {ds.sync_enabled && <span className="text-[0.6rem] text-[var(--text-muted)]">Sync enabled</span>}
               </div>
             </div>
@@ -248,7 +253,7 @@ export default function DataSetDetail() {
         </header>
 
         {/* ── Tab Bar ── */}
-        <div className="flex items-center gap-1 px-6 py-2 border-b border-[var(--border)] bg-[var(--bg-card)]">
+        <div className="flex items-center gap-1 px-6 py-2 border-b border-[var(--border)] bg-[var(--bg-card)] shrink-0">
           {tabs.map((t) => (
             <button key={t.id}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150"
@@ -265,13 +270,13 @@ export default function DataSetDetail() {
 
         {/* ── Content ── */}
         <main className="flex-1 overflow-auto px-6 py-5">
-          {tab === "overview" && <OverviewTab ds={ds} sources={sources} columns={columns} outputCols={outputCols} tables={tables} joins={joins} />}
-          {tab === "columns" && <ColumnsTab columns={outputCols.length ? outputCols : columns} />}
-          {tab === "sources" && <SourcesTab sources={sources} />}
-          {tab === "sync" && <SyncTab ds={ds} syncing={syncing} materializing={materializing} onSync={handleSync} onMaterialize={handleMaterialize} />}
+          {tab === "overview"  && <OverviewTab ds={ds} sources={sources} columns={columns} outputCols={outputCols} tables={tables} joins={joins} />}
+          {tab === "columns"   && <ColumnsTab columns={outputCols.length ? outputCols : columns} />}
+          {tab === "sources"   && <SourcesTab sources={sources} />}
+          {tab === "sync"      && <SyncTab ds={ds} syncing={syncing} materializing={materializing} onSync={handleSync} onMaterialize={handleMaterialize} />}
         </main>
 
-        <footer className="px-6 py-3 border-t border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between text-[0.65rem] text-[var(--text-muted)]">
+        <footer className="px-6 py-3 border-t border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between text-[0.65rem] text-[var(--text-muted)] shrink-0">
           <span>© 2026 PCSoft Analytics</span>
           <span>v1.0.0</span>
         </footer>
@@ -286,59 +291,61 @@ export default function DataSetDetail() {
    ═══════════════════════════════════════════════════════════ */
 function OverviewTab({ ds, sources, columns, outputCols, tables, joins }) {
   const infoCards = [
-    { label: "Sources", value: sources.length, icon: ico.db, color: "#60a5fa" },
-    { label: "Tables", value: tables.length, icon: ico.table, color: "#fbbf24" },
+    { label: "Sources", value: sources.length,               icon: ico.db,      color: "#60a5fa" },
+    { label: "Tables",  value: tables.length,                icon: ico.table,   color: "#fbbf24" },
     { label: "Columns", value: outputCols.length || columns.length, icon: ico.columns, color: "#4ade80" },
-    { label: "Joins", value: joins.length, icon: ico.layers, color: "#a78bfa" },
+    { label: "Joins",   value: joins.length,                 icon: ico.layers,  color: "#a78bfa" },
   ];
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* ── Description ── */}
-      <section className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
-        <h3 className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-3">Description</h3>
-        <p className="text-sm text-[var(--text-sub)]">
-          {ds.description || <span className="italic text-[var(--text-muted)]">No description provided</span>}
-        </p>
-      </section>
+    <div className="space-y-5 w-full">
+      {/* ── Description + Stats side-by-side ── */}
+      <div className="grid grid-cols-3 gap-4">
+        <section className="col-span-1 p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+          <h3 className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-3">Description</h3>
+          <p className="text-sm text-[var(--text-sub)]">
+            {ds.description || <span className="italic text-[var(--text-muted)]">No description provided</span>}
+          </p>
+        </section>
 
-      {/* ── Stats Grid ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {infoCards.map((c) => (
-          <div key={c.label} className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: `${c.color}15`, border: `1px solid ${c.color}30` }}>
-              <I d={c.icon} size={18} color={c.color} />
+        {/* ── Stats Grid ── */}
+        <div className="col-span-2 grid grid-cols-4 gap-3 content-start">
+          {infoCards.map((c) => (
+            <div key={c.label} className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: `${c.color}15`, border: `1px solid ${c.color}30` }}>
+                <I d={c.icon} size={18} color={c.color} />
+              </div>
+              <div>
+                <p className="text-xl font-bold">{c.value}</p>
+                <p className="text-[0.6rem] text-[var(--text-muted)] uppercase tracking-wider">{c.label}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xl font-bold">{c.value}</p>
-              <p className="text-[0.6rem] text-[var(--text-muted)] uppercase tracking-wider">{c.label}</p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* ── Details ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <section className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
           <h3 className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-3">Configuration</h3>
           <div className="space-y-2.5">
             <DetailRow label="Definition Type" value={ds.definition_type} />
-            <DetailRow label="Sync Method" value={ds.sync_method || "—"} />
-            <DetailRow label="Sync Frequency" value={ds.sync_frequency || "—"} />
-            <DetailRow label="Sync Enabled" value={ds.sync_enabled ? "Yes" : "No"} />
-            <DetailRow label="Aggregation" value={ds.aggregation_enabled ? "Enabled" : "Disabled"} />
+            <DetailRow label="Sync Method"     value={ds.sync_method || "—"} />
+            <DetailRow label="Sync Frequency"  value={ds.sync_frequency || "—"} />
+            <DetailRow label="Sync Enabled"    value={ds.sync_enabled ? "Yes" : "No"} />
+            <DetailRow label="Aggregation"     value={ds.aggregation_enabled ? "Enabled" : "Disabled"} />
           </div>
         </section>
 
         <section className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
           <h3 className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-3">Timeline</h3>
           <div className="space-y-2.5">
-            <DetailRow label="Created" value={formatDateTime(ds.created_at)} />
-            <DetailRow label="Updated" value={formatDateTime(ds.updated_at)} />
-            <DetailRow label="Last Synced" value={formatDateTime(ds.last_synced_at)} />
-            <DetailRow label="Last Materialized" value={formatDateTime(ds.last_materialized_at)} />
-            <DetailRow label="Sync Status" value={ds.last_sync_status || "—"} />
+            <DetailRow label="Created"                value={formatDateTime(ds.created_at)} />
+            <DetailRow label="Updated"                value={formatDateTime(ds.updated_at)} />
+            <DetailRow label="Last Synced"            value={formatDateTime(ds.last_synced_at)} />
+            <DetailRow label="Last Materialized"      value={formatDateTime(ds.last_materialized_at)} />
+            <DetailRow label="Sync Status"            value={ds.last_sync_status || "—"} />
             <DetailRow label="Materialization Status" value={ds.last_materialization_status || "—"} />
           </div>
         </section>
@@ -386,18 +393,18 @@ function ColumnsTab({ columns }) {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="w-full">
       <table className="w-full table-fixed">
         <colgroup>
-          <col style={{ width: "6%" }} />
-          <col style={{ width: "26%" }} />
+          <col style={{ width: "5%" }} />
+          <col style={{ width: "22%" }} />
           <col style={{ width: "20%" }} />
-          <col style={{ width: "14%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "22%" }} />
           <col style={{ width: "18%" }} />
-          <col style={{ width: "16%" }} />
         </colgroup>
         <thead>
-          <tr className="text-[0.62rem] font-bold tracking-[0.08em] uppercase text-[var(--text-muted)]">
+          <tr className="text-[0.62rem] font-bold tracking-[0.08em] uppercase text-[var(--text-muted)] border-b border-[var(--border)]">
             <th className="text-left px-3 py-2.5">#</th>
             <th className="text-left px-3 py-2.5">Name</th>
             <th className="text-left px-3 py-2.5">Display Name</th>
@@ -428,11 +435,9 @@ function ColumnsTab({ columns }) {
                 </td>
                 <td className="px-3 py-2.5">
                   {col.visible !== undefined ? (
-                    col.visible ? (
-                      <I d={ico.check} size={14} color="#4ade80" sw={2.5} />
-                    ) : (
-                      <I d={ico.x} size={14} color="#94a3b8" sw={2.5} />
-                    )
+                    col.visible
+                      ? <I d={ico.check} size={14} color="#4ade80" sw={2.5} />
+                      : <I d={ico.x}     size={14} color="#94a3b8" sw={2.5} />
                   ) : (
                     <span className="text-xs text-[var(--text-muted)]">—</span>
                   )}
@@ -459,8 +464,8 @@ function SourcesTab({ sources }) {
   }
 
   return (
-    <div className="max-w-4xl">
-      <div className="grid gap-3">
+    <div className="w-full">
+      <div className="grid grid-cols-2 gap-3">
         {sources.map((s, i) => (
           <div key={s.id || i} className="flex items-center gap-4 p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
@@ -490,11 +495,11 @@ function SourcesTab({ sources }) {
 function SyncTab({ ds, syncing, materializing, onSync, onMaterialize }) {
   const syncStatus = ds.last_sync_status;
   const syncColors = syncStatus ? (SYNC_COLORS[syncStatus] || SYNC_COLORS.pending) : null;
-  const matStatus = ds.last_materialization_status;
-  const matColors = matStatus ? (MAT_COLORS[matStatus] || MAT_COLORS.pending) : null;
+  const matStatus  = ds.last_materialization_status;
+  const matColors  = matStatus  ? (MAT_COLORS[matStatus]  || MAT_COLORS.pending)  : null;
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="grid grid-cols-2 gap-5 w-full items-start">
       {/* ── Sync Section ── */}
       <section className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
         <div className="flex items-center justify-between mb-4">
@@ -503,19 +508,17 @@ function SyncTab({ ds, syncing, materializing, onSync, onMaterialize }) {
             {syncing ? <Spin /> : <I d={ico.sync} size={14} color="#fff" />} Run Sync
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-          <DetailRow label="Method" value={ds.sync_method || "—"} />
-          <DetailRow label="Frequency" value={ds.sync_frequency || "—"} />
-          <DetailRow label="Enabled" value={ds.sync_enabled ? "Yes" : "No"} />
-          <DetailRow label="Schedule Time" value={ds.sync_schedule_time || "—"} />
-          <DetailRow label="Last Synced" value={formatDateTime(ds.last_synced_at)} />
+        <div className="space-y-3">
+          <DetailRow label="Method"         value={ds.sync_method || "—"} />
+          <DetailRow label="Frequency"      value={ds.sync_frequency || "—"} />
+          <DetailRow label="Enabled"        value={ds.sync_enabled ? "Yes" : "No"} />
+          <DetailRow label="Schedule Time"  value={ds.sync_schedule_time || "—"} />
+          <DetailRow label="Last Synced"    value={formatDateTime(ds.last_synced_at)} />
           <div className="flex items-center justify-between">
             <span className="text-xs text-[var(--text-muted)]">Last Status</span>
-            {syncColors ? (
-              <Badge label={syncStatus} bg={syncColors.bg} color={syncColors.color} border={syncColors.border} />
-            ) : (
-              <span className="text-xs font-medium text-[var(--text)]">—</span>
-            )}
+            {syncColors
+              ? <Badge label={syncStatus} bg={syncColors.bg} color={syncColors.color} border={syncColors.border} />
+              : <span className="text-xs font-medium text-[var(--text)]">—</span>}
           </div>
         </div>
       </section>
@@ -528,16 +531,14 @@ function SyncTab({ ds, syncing, materializing, onSync, onMaterialize }) {
             {materializing ? <Spin /> : <I d={ico.materialize} size={14} color="#fff" />} Materialize
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+        <div className="space-y-3">
           <DetailRow label="Materialized Path" value={ds.materialized_path || "Not materialized"} />
           <DetailRow label="Last Materialized" value={formatDateTime(ds.last_materialized_at)} />
           <div className="flex items-center justify-between">
             <span className="text-xs text-[var(--text-muted)]">Status</span>
-            {matColors ? (
-              <Badge label={matStatus} bg={matColors.bg} color={matColors.color} border={matColors.border} />
-            ) : (
-              <span className="text-xs font-medium text-[var(--text)]">—</span>
-            )}
+            {matColors
+              ? <Badge label={matStatus} bg={matColors.bg} color={matColors.color} border={matColors.border} />
+              : <span className="text-xs font-medium text-[var(--text)]">—</span>}
           </div>
         </div>
       </section>

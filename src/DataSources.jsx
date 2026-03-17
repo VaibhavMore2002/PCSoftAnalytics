@@ -698,11 +698,6 @@ export default function DataSourcesPage() {
         <div className="flex items-center justify-between px-5 py-2 shrink-0 gap-3 border-b border-b-[var(--border)] bg-[var(--topbar-bg)] transition-colors duration-300">
           {/* Left: Logo + breadcrumb */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-[1rem] font-extrabold tracking-[-0.01em]" style={{ color: "var(--nav-active)" }}>Query</span>
-              <span className="text-[1rem] font-extrabold tracking-[-0.01em]" style={{ color: "var(--accent1)" }}>Forge</span>
-            </div>
-            <span className="text-[0.68rem] text-[var(--text-muted)]">/</span>
             <span className="text-[0.72rem] text-[var(--text-muted)]">queries</span>
             <span className="text-[0.68rem] text-[var(--text-muted)]">/</span>
             <span className="text-[0.72rem] text-[var(--text)]">new-query</span>

@@ -39,20 +39,20 @@ const btnS = "px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer bg-[var(
 
 /* ── Status / Type / Sync badge colors ── */
 const STATUS_COLORS = {
-  active:   { bg: "rgba(74,222,128,.12)", color: "#4ade80", border: "rgba(74,222,128,.25)" },
-  draft:    { bg: "rgba(250,204,21,.12)", color: "#facc15", border: "rgba(250,204,21,.25)" },
+  active: { bg: "rgba(74,222,128,.12)", color: "#4ade80", border: "rgba(74,222,128,.25)" },
+  draft: { bg: "rgba(250,204,21,.12)", color: "#facc15", border: "rgba(250,204,21,.25)" },
   archived: { bg: "rgba(148,163,184,.12)", color: "#94a3b8", border: "rgba(148,163,184,.25)" },
 };
 const SYNC_COLORS = {
   success: { bg: "rgba(74,222,128,.12)", color: "#4ade80", border: "rgba(74,222,128,.25)" },
   running: { bg: "rgba(96,165,250,.12)", color: "#60a5fa", border: "rgba(96,165,250,.25)" },
-  failed:  { bg: "rgba(248,113,113,.12)", color: "#f87171", border: "rgba(248,113,113,.25)" },
+  failed: { bg: "rgba(248,113,113,.12)", color: "#f87171", border: "rgba(248,113,113,.25)" },
   pending: { bg: "rgba(250,204,21,.12)", color: "#facc15", border: "rgba(250,204,21,.25)" },
 };
 const TYPE_COLORS = {
-  join:  { bg: "rgba(99,102,241,.10)", color: "#818cf8", border: "rgba(99,102,241,.25)" },
+  join: { bg: "rgba(99,102,241,.10)", color: "#818cf8", border: "rgba(99,102,241,.25)" },
   union: { bg: "rgba(245,158,11,.10)", color: "#fbbf24", border: "rgba(245,158,11,.25)" },
-  sql:   { bg: "rgba(6,182,212,.10)",  color: "#22d3ee", border: "rgba(6,182,212,.25)" },
+  sql: { bg: "rgba(6,182,212,.10)", color: "#22d3ee", border: "rgba(6,182,212,.25)" },
 };
 
 function Badge({ label, bg, color, border }) {
@@ -214,6 +214,7 @@ export default function DataSets() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [duplicating, setDuplicating] = useState(null);
   const [syncing, setSyncing] = useState(null);
+  const [openMenu, setOpenMenu] = useState(null);
 
   const fetchDatasets = useCallback(() => {
     if (!api) return;
@@ -279,9 +280,21 @@ export default function DataSets() {
     archived: datasets.filter((d) => d.status === "archived").length,
   };
 
+  useEffect(() => {
+    const close = () => setOpenMenu(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, []);
+
+  const logo = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  );
+
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
-      <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} />
+      <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} logo={logo} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* ── Header ── */}
@@ -407,7 +420,7 @@ export default function DataSets() {
                           </div>
                         </td>
                         <td className="px-3 py-3">
-                          <p className="text-xs text-[var(--text-sub)] truncate">
+                          <p className="text-xs font-semibold text-[var(--text-sub)] truncate">
                             {ds.description || <span className="text-[var(--text-muted)] italic">No description</span>}
                           </p>
                         </td>
@@ -429,27 +442,54 @@ export default function DataSets() {
                             {relativeTime(ds.updated_at)}
                           </span>
                         </td>
-                        <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-1">
-                            <button title="Edit" className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--nav-active)] hover:border-[var(--nav-active)] transition-colors"
-                              onClick={() => navigate(`/datasets/${ds.id}/edit`)}>
-                              <I d={ico.edit} size={12} />
+                        <td className="px-3 py-3 relative" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center">
+
+                            <button
+                              onClick={() => setOpenMenu(openMenu === ds.id ? null : ds.id)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer
+      bg-[var(--bg-input)] border border-[var(--border)]
+      text-[var(--text-muted)] hover:text-[var(--nav-active)] text-center"
+                            >
+                              ⋮
+                              {/* <I d={ico.dots} size={14} /> */}
                             </button>
-                            <button title="Duplicate" className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[#60a5fa] hover:border-[#60a5fa] transition-colors"
-                              disabled={duplicating === ds.id}
-                              onClick={() => handleDuplicate(ds)}>
-                              {duplicating === ds.id ? <Spin /> : <I d={ico.copy} size={12} />}
-                            </button>
-                            <button title="Sync" className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[#4ade80] hover:border-[#4ade80] transition-colors"
-                              disabled={syncing === ds.id}
-                              onClick={() => handleSync(ds)}>
-                              {syncing === ds.id ? <Spin /> : <I d={ico.sync} size={12} />}
-                            </button>
-                            <button title="Delete" className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[#f87171] hover:border-[#f87171] transition-colors"
-                              onClick={() => setDeleting(ds)}>
-                              <I d={ico.trash} size={12} />
-                            </button>
+
                           </div>
+
+                          {openMenu === ds.id && (
+                            <div className="absolute right-6 mt-2 w-40 rounded-xl border border-[var(--border)]
+      bg-[var(--bg-card)] shadow-lg z-50 overflow-hidden">
+
+                              <button
+                                className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-[var(--bg-hover)]"
+                                onClick={() => navigate(`/datasets/${ds.id}/edit`)}
+                              >
+                                <I d={ico.edit} size={14} /> Edit
+                              </button>
+
+                              <button
+                                className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-[var(--bg-hover)]"
+                                onClick={() => handleDuplicate(ds)}
+                              >
+                                <I d={ico.copy} size={14} /> Duplicate
+                              </button>
+
+                              <button
+                                className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-[var(--bg-hover)]"
+                                onClick={() => handleSync(ds)}
+                              >
+                                <I d={ico.sync} size={14} /> Sync
+                              </button>
+
+                              <button
+                                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-400 hover:bg-[var(--bg-hover)]"
+                                onClick={() => setDeleting(ds)}
+                              >
+                                <I d={ico.trash} size={14} /> Delete
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
