@@ -204,6 +204,7 @@ export default function DataSets() {
   const { navItems, activeNav, handleNavClick, api } = useApp();
   const navigate = useNavigate();
   const { push, Toast } = useToast();
+  const PAGE_SIZE = 10;
 
   const [datasets, setDatasets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -215,6 +216,7 @@ export default function DataSets() {
   const [duplicating, setDuplicating] = useState(null);
   const [syncing, setSyncing] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchDatasets = useCallback(() => {
     if (!api) return;
@@ -238,6 +240,20 @@ export default function DataSets() {
     const matchType = typeFilter === "all" || ds.definition_type === typeFilter;
     return matchSearch && matchStatus && matchType;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const paginated = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   /* ── Actions ── */
   const handleDelete = async () => {
@@ -391,7 +407,7 @@ export default function DataSets() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((ds) => {
+                  {paginated.map((ds) => {
                     const sc = STATUS_COLORS[ds.status] || STATUS_COLORS.draft;
                     const tc = TYPE_COLORS[ds.definition_type] || TYPE_COLORS.join;
                     const syncSt = ds.last_sync_status || (ds.sync_enabled ? "pending" : null);
@@ -496,8 +512,31 @@ export default function DataSets() {
                   })}
                 </tbody>
               </table>
-              <div className="text-[0.65rem] text-[var(--text-muted)] mt-3 px-1">
-                Showing {filtered.length} of {datasets.length} dataset{datasets.length !== 1 ? "s" : ""}
+              <div className="mt-3 px-1 flex items-center justify-between gap-3">
+                <div className="text-[0.65rem] text-[var(--text-muted)]">
+                  Showing {filtered.length === 0 ? 0 : pageStart + 1}-{Math.min(pageStart + PAGE_SIZE, filtered.length)} of {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    className={btnS}
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? "not-allowed" : "pointer" }}
+                  >
+                    Prev
+                  </button>
+                  <span className="text-[0.65rem] text-[var(--text-muted)] min-w-20 text-center">
+                    Page {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    className={btnS}
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    style={{ opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? "not-allowed" : "pointer" }}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           )}

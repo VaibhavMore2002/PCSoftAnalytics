@@ -134,6 +134,10 @@ export default function DataSetDetail() {
   const [syncing, setSyncing] = useState(false);
   const [materializing, setMaterializing] = useState(false);
   const [tab, setTab] = useState("overview");
+  const [allTables, setAllTables] = useState([]);
+  const [syncStats, setSyncStats] = useState(null);
+  const [syncTablesData, setSyncTablesData] = useState([]);
+  const [loadingTables, setLoadingTables] = useState(false);
 
   const fetchDataset = useCallback(() => {
     if (!api || !id) return;
@@ -144,7 +148,30 @@ export default function DataSetDetail() {
       .finally(() => setLoading(false));
   }, [api, id, push]);
 
+  const fetchAllTablesAndStats = useCallback(async () => {
+    if (!api || !ds?.definition?.sources?.length) return;
+    setLoadingTables(true);
+    try {
+      const sourceId = ds.definition.sources[0]?.sourceId;
+      if (sourceId) {
+        const [tables, stats, syncTables] = await Promise.all([
+          api(`/api/v1/data-sources/${sourceId}/tables`).catch(() => []),
+          api(`/api/v1/data-sources/${sourceId}/sync-inheritance-stats`).catch(() => null),
+          api(`/api/v1/data-sources/${sourceId}/sync-tables`).catch(() => []),
+        ]);
+        setAllTables(Array.isArray(tables) ? tables : []);
+        setSyncStats(stats);
+        setSyncTablesData(Array.isArray(syncTables) ? syncTables : []);
+      }
+    } catch (e) {
+      console.error("Failed to load tables:", e);
+    } finally {
+      setLoadingTables(false);
+    }
+  }, [api, ds]);
+
   useEffect(() => { fetchDataset(); }, [fetchDataset]);
+  useEffect(() => { if (ds) fetchAllTablesAndStats(); }, [ds, fetchAllTablesAndStats]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -209,6 +236,8 @@ export default function DataSetDetail() {
     { id: "overview",    label: "Overview" },
     { id: "columns",     label: `Columns (${outputCols.length || columns.length})` },
     { id: "sources",     label: `Sources (${sources.length})` },
+    { id: "tables",      label: `Tables (${allTables.length})` },
+    { id: "stats",       label: "Sync Stats" },
     { id: "definition",  label: "View Definition" },
     { id: "sync",        label: "Sync & Materialization" },
   ];
@@ -270,9 +299,11 @@ export default function DataSetDetail() {
 
         {/* ── Content ── */}
         <main className="flex-1 overflow-auto px-6 py-5">
-          {tab === "overview"  && <OverviewTab ds={ds} sources={sources} columns={columns} outputCols={outputCols} tables={tables} joins={joins} />}
+          {tab === "overview"  && <OverviewTab ds={ds} sources={sources} columns={columns} outputCols={outputCols} tables={tables} joins={joins} syncStats={syncStats} />}
           {tab === "columns"   && <ColumnsTab columns={outputCols.length ? outputCols : columns} />}
           {tab === "sources"   && <SourcesTab sources={sources} />}
+          {tab === "tables"    && <TablesTab tables={allTables} syncTablesData={syncTablesData} loading={loadingTables} api={api} dsId={id} />}
+          {tab === "stats"     && <SyncStatsTab syncStats={syncStats} syncTables={syncTablesData} />}
           {tab === "sync"      && <SyncTab ds={ds} syncing={syncing} materializing={materializing} onSync={handleSync} onMaterialize={handleMaterialize} />}
         </main>
 
@@ -289,7 +320,7 @@ export default function DataSetDetail() {
 /* ═══════════════════════════════════════════════════════════
    TAB: Overview
    ═══════════════════════════════════════════════════════════ */
-function OverviewTab({ ds, sources, columns, outputCols, tables, joins }) {
+function OverviewTab({ ds, sources, columns, outputCols, tables, joins, syncStats }) {
   const infoCards = [
     { label: "Sources", value: sources.length,               icon: ico.db,      color: "#60a5fa" },
     { label: "Tables",  value: tables.length,                icon: ico.table,   color: "#fbbf24" },
@@ -324,6 +355,28 @@ function OverviewTab({ ds, sources, columns, outputCols, tables, joins }) {
           ))}
         </div>
       </div>
+
+      {/* ── Sync Stats ── */}
+      {syncStats && (
+        <div className="grid grid-cols-4 gap-3">
+          <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+            <p className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-2">Total Tables</p>
+            <p className="text-2xl font-bold">{syncStats.total_tables || 0}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+            <p className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-2">Synced</p>
+            <p className="text-2xl font-bold text-green-400">{syncStats.synced_tables || 0}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+            <p className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-2">Failed</p>
+            <p className="text-2xl font-bold text-red-400">{syncStats.failed_tables || 0}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+            <p className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-2">Success Rate</p>
+            <p className="text-2xl font-bold text-blue-400">{((syncStats.synced_tables / (syncStats.total_tables || 1)) * 100).toFixed(1)}%</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Details ── */}
       <div className="grid grid-cols-2 gap-4">
@@ -542,6 +595,204 @@ function SyncTab({ ds, syncing, materializing, onSync, onMaterialize }) {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TAB: Tables with Expandable Details
+   ═══════════════════════════════════════════════════════════ */
+function TablesTab({ tables, syncTablesData, loading, api, dsId }) {
+  const [expanded, setExpanded] = useState({});
+  const [tableColumns, setTableColumns] = useState({});
+
+  const toggleExpand = useCallback(async (tableKey) => {
+    setExpanded((p) => ({ ...p, [tableKey]: !p[tableKey] }));
+    if (!expanded[tableKey] && !tableColumns[tableKey] && api && dsId) {
+      try {
+        const t = tables.find((x) => x.tableKey === tableKey);
+        if (t) {
+          const cols = await api(`/api/v1/data-sources/${t.sourceId}/tables/${t.schema}/${t.name}/columns`).catch(() => []);
+          setTableColumns((p) => ({ ...p, [tableKey]: cols }));
+        }
+      } catch (e) { console.error("Failed to load columns:", e); }
+    }
+  }, [expanded, tableColumns, tables, api, dsId]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Spin />
+        <p className="text-sm text-[var(--text-muted)]">Loading {tables.length} tables...</p>
+      </div>
+    );
+  }
+
+  if (!tables.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-sm text-[var(--text-muted)]">No tables found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-3">
+      <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-between">
+        <div>
+          <p className="text-sm font-bold">Total Tables: {tables.length}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">Click on a table to view detailed column information</p>
+        </div>
+      </div>
+      {tables.map((table, i) => {
+        const key = `${table.schema}.${table.name}`;
+        const iExp = expanded[key];
+        const syncInfo = syncTablesData.find((s) => s.table_name === table.name);
+        return (
+          <div key={key} className="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--bg-card)]">
+            <button
+              className="w-full p-4 flex items-center justify-between hover:bg-[var(--bg-input)] transition-colors text-left"
+              onClick={() => toggleExpand(key)}>
+              <div className="flex-1 flex items-center gap-3">
+                <I d={iExp ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} size={16} color="var(--text-muted)" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold">{table.name}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{table.schema}.{table.name}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                {syncInfo && (
+                  <Badge
+                    label={syncInfo.sync_status || "unknown"}
+                    bg={syncInfo.sync_status === "success" ? "rgba(74,222,128,.12)" : "rgba(248,113,113,.12)"}
+                    color={syncInfo.sync_status === "success" ? "#4ade80" : "#f87171"}
+                    border={syncInfo.sync_status === "success" ? "rgba(74,222,128,.25)" : "rgba(248,113,113,.25)"} />
+                )}
+                <span className="text-xs text-[var(--text-muted)]">ID: {table.id}</span>
+              </div>
+            </button>
+            {iExp && (
+              <div className="border-t border-[var(--border)] p-4 bg-[var(--bg-input)]">
+                <div className="space-y-3 mb-4">
+                  <DetailRow label="Schema" value={table.schema} />
+                  <DetailRow label="Type"   value={table.type || "—"} />
+                  <DetailRow label="Rows"   value={table.row_count ? table.row_count.toLocaleString() : "—"} />
+                  <DetailRow label="Size"   value={table.size_mb ? `${table.size_mb.toFixed(2)} MB` : "—"} />
+                  {syncInfo && (
+                    <>
+                      <DetailRow label="Last Synced" value={formatDateTime(syncInfo.last_synced_at)} />
+                      <DetailRow label="Row Count"   value={syncInfo.row_count ? syncInfo.row_count.toLocaleString() : "—"} />
+                    </>
+                  )}
+                </div>
+                {tableColumns[key] && tableColumns[key].length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold text-[var(--text-muted)] mb-2 uppercase">Columns ({tableColumns[key].length})</p>
+                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                      {tableColumns[key].map((col, j) => (
+                        <div key={j} className="p-2 bg-[var(--bg-card)] rounded border border-[var(--border)] text-xs">
+                          <p className="font-semibold text-white">{col.name}</p>
+                          <p className="text-[var(--text-muted)]">{col.data_type}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TAB: Sync Statistics
+   ═══════════════════════════════════════════════════════════ */
+function SyncStatsTab({ syncStats, syncTables }) {
+  if (!syncStats) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-sm text-[var(--text-muted)]">No sync statistics available</p>
+      </div>
+    );
+  }
+
+  const stats = [
+    { label: "Total Tables", value: syncStats.total_tables || 0, color: "#60a5fa" },
+    { label: "Synced", value: syncStats.synced_tables || 0, color: "#4ade80" },
+    { label: "Failed", value: syncStats.failed_tables || 0, color: "#f87171" },
+    { label: "Pending", value: syncStats.pending_tables || 0, color: "#facc15" },
+  ];
+
+  const successRate = syncStats.total_tables ? ((syncStats.synced_tables / syncStats.total_tables) * 100).toFixed(1) : 0;
+
+  return (
+    <div className="w-full space-y-5">
+      {/* ── Stats Grid ── */}
+      <div className="grid grid-cols-4 gap-3">
+        {stats.map((s) => (
+          <div key={s.label} className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+            <p className="text-[0.65rem] font-bold tracking-wider uppercase text-[var(--text-muted)] mb-2">{s.label}</p>
+            <p className="text-3xl font-bold" style={{ color: s.color }}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Success Rate ── */}
+      <div className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)]">Success Rate</p>
+          <p className="text-2xl font-bold" style={{ color: successRate >= 95 ? "#4ade80" : successRate >= 80 ? "#fbbf24" : "#f87171" }}>
+            {successRate}%
+          </p>
+        </div>
+        <div className="w-full h-2 bg-[var(--bg-input)] rounded-full overflow-hidden">
+          <div
+            className="h-full transition-all duration-300"
+            style={{
+              width: `${successRate}%`,
+              background: successRate >= 95 ? "#4ade80" : successRate >= 80 ? "#fbbf24" : "#f87171",
+            }} />
+        </div>
+      </div>
+
+      {/* ── Sync Tables Breakdown ── */}
+      {syncTables.length > 0 && (
+        <div className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+          <h3 className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-4">Table Sync Details</h3>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-[var(--border)] text-[var(--text-muted)]">
+                <th className="text-left py-2 px-2 font-bold">Table Name</th>
+                <th className="text-left py-2 px-2 font-bold">Status</th>
+                <th className="text-left py-2 px-2 font-bold">Rows</th>
+                <th className="text-left py-2 px-2 font-bold">Last Synced</th>
+              </tr>
+            </thead>
+            <tbody>
+              {syncTables.slice(0, 50).map((t, i) => (
+                <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--bg-input)]">
+                  <td className="py-2 px-2 text-white font-medium">{t.table_name}</td>
+                  <td className="py-2 px-2">
+                    <Badge
+                      label={t.sync_status}
+                      bg={t.sync_status === "success" ? "rgba(74,222,128,.12)" : "rgba(248,113,113,.12)"}
+                      color={t.sync_status === "success" ? "#4ade80" : "#f87171"}
+                      border={t.sync_status === "success" ? "rgba(74,222,128,.25)" : "rgba(248,113,113,.25)"} />
+                  </td>
+                  <td className="py-2 px-2 text-[var(--text-muted)]">{t.row_count ? t.row_count.toLocaleString() : "—"}</td>
+                  <td className="py-2 px-2 text-[var(--text-muted)]">{formatDateTime(t.last_synced_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {syncTables.length > 50 && (
+            <p className="text-xs text-[var(--text-muted)] mt-3">... and {syncTables.length - 50} more tables</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

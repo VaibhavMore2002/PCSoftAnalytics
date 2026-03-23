@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "./ThemeContext.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -169,12 +169,22 @@ export default function Sidebar({
 }) {
   // ── Persist collapsed state in sessionStorage ──────────
   const [minimized, setMinimized] = useState(() => {
+    if (initialMinimized) {
+      try { sessionStorage.setItem("sidebar-minimized", "true"); } catch (_) {}
+      return true;
+    }
     try {
       const stored = sessionStorage.getItem("sidebar-minimized");
       if (stored !== null) return stored === "true";
     } catch (_) {}
     return initialMinimized;
   });
+
+  useEffect(() => {
+    if (!initialMinimized) return;
+    setMinimized(true);
+    try { sessionStorage.setItem("sidebar-minimized", "true"); } catch (_) {}
+  }, [initialMinimized]);
 
   const toggleMinimized = () => {
     setMinimized((prev) => {

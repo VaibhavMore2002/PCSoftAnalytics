@@ -4,6 +4,8 @@ import DashboardList from "./DashboardList.jsx";
 import Dashboard from "./analitics.jsx";
 import Settings from "./Settings.jsx";
 import DataSources from "./DataSources.jsx";
+import DataSourceDetail from "./DataSourceDetail.jsx";
+import TableDetail from "./TableDetail.jsx";
 import DataSets from "./DataSets.jsx";
 import DataSetDetail from "./DataSetDetail.jsx";
 import DataSetEditor from "./DataSetEditor.jsx";
@@ -26,10 +28,12 @@ function ProtectedRoutes() {
         <Route path="/dashboards/:id" element={<Dashboard />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/datasources" element={<DataSources />} />
+        <Route path="/datasources/:id" element={<DataSourceDetail />} />
+        <Route path="/datasources/:id/tables/:schema/:tableName" element={<TableDetail />} />
         <Route path="/datasets" element={<DataSets />} />
         <Route path="/datasets/:id" element={<DataSetDetail />} />
         <Route path="/datasets/:id/definition" element={<DataSetDefinition />} />
-        <Route path="/datasets/:id/edit" element={<DataSetEditor />} />
+        <Route path="/datasets/:id/edit" element={<DataSetDefinition />} />
         <Route path="/datasets/new" element={<DataSetEditor />} />
         <Route path="/profile" element={<UserProfile />} />
       </Routes>

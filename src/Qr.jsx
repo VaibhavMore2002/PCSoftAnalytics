@@ -27,22 +27,22 @@ const darkT = {
 };
 
 const lightT = {
-  bg: "#F8F9FB",
+  bg: "#EEF3FB",
   surface: "#FFFFFF",
-  surface2: "#F1F3F5",
-  surface3: "#E5E7EB",
-  border: "#E0E3E8",
-  border2: "#CBD0D8",
-  accent: "#3B82F6",
-  accentDim: "rgba(59, 130, 246, 0.08)",
-  accentGlow: "rgba(59, 130, 246, 0.18)",
+  surface2: "#F4F7FF",
+  surface3: "#E7EEF9",
+  border: "#D5DFEE",
+  border2: "#B7C8DF",
+  accent: "#2563EB",
+  accentDim: "rgba(37, 99, 235, 0.10)",
+  accentGlow: "rgba(37, 99, 235, 0.22)",
   green: "#10B981",
   amber: "#D97706",
   red: "#EF4444",
   purple: "#8B5CF6",
-  text: "#1F2937",
-  text2: "#4B5563",
-  text3: "#9CA3AF",
+  text: "#0F172A",
+  text2: "#334155",
+  text3: "#64748B",
   mono: "'JetBrains Mono','Fira Code',monospace",
   sans: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
 };
@@ -61,7 +61,7 @@ function bez(x1, y1, x2, y2) {
 
 const NODE_HEADER_H = 44;
 const FIELD_H = 30;
-const NODE_WIDTH = 224;
+const NODE_WIDTH = 236;
 
 function nodeHeight(fields) {
   return NODE_HEADER_H + (fields?.length || 0) * FIELD_H + 8;
@@ -154,22 +154,28 @@ function DbGroup({ dbKey, db, nodes, onAdd, onDragStart, onExpand }) {
 }
 
 // ─── TABLE NODE (SVG) ─────────────────────────────────────────────────────────
-function TableNode({ node, onRemove, onStartDrag, onPortDown, onPortUp, connecting }) {
+function TableNode({ node, onRemove, onStartDrag, onPortDown, onPortUp, connecting, isMain }) {
   const T = useT();
   const fields = node.cols || [];
   const dbColor = node.dotColor || T.accent;
   const isSource = connecting?.tableId === node.id;
   const nh = nodeHeight(fields);
   const displayName = node.name || node.id;
+  const strokeColor = isMain ? T.accent : (isSource ? dbColor : T.border2);
+  const strokeWidth = isMain ? 2.2 : (isSource ? 1.8 : 1);
 
   return (
     <g transform={`translate(${node.x},${node.y})`}>
-      <rect x={5} y={8} width={NODE_WIDTH} height={nh} rx={13} fill="rgba(0,0,0,0.3)" />
+      <rect x={5} y={8} width={NODE_WIDTH} height={nh} rx={13} fill="rgba(0,0,0,0.22)" />
+      {isMain && (
+        <rect x={-4} y={-4} width={NODE_WIDTH + 8} height={nh + 8} rx={14}
+          fill="none" stroke={T.accentGlow} strokeWidth={2} />
+      )}
 
       <rect x={0} y={0} width={NODE_WIDTH} height={nh} rx={12}
         fill={T.surface}
-        stroke={isSource ? dbColor : T.border2}
-        strokeWidth={isSource ? 1.8 : 1}
+        stroke={strokeColor}
+        strokeWidth={strokeWidth}
       />
 
       <rect x={0} y={0} width={NODE_WIDTH} height={NODE_HEADER_H} rx={12} fill={T.surface2} />
@@ -181,11 +187,19 @@ function TableNode({ node, onRemove, onStartDrag, onPortDown, onPortUp, connecti
 
       <text x={30} y={NODE_HEADER_H / 2 + 1}
         dominantBaseline="middle" fill={T.text}
-        fontSize={13} fontWeight={600} fontFamily={T.sans}>{displayName}</text>
+        fontSize={13.5} fontWeight={700} fontFamily={T.sans}>{displayName}</text>
 
       <rect x={NODE_WIDTH - 50} y={12} width={38} height={16} rx={4} fill={T.bg} />
       <text x={NODE_WIDTH - 31} y={20} textAnchor="middle" dominantBaseline="middle"
         fill={T.text3} fontSize={9.5} fontFamily={T.mono}>{fields.length} cols</text>
+
+      {isMain && (
+        <>
+          <rect x={NODE_WIDTH - 120} y={12} width={62} height={16} rx={4} fill={T.accentDim} stroke={T.accent} strokeWidth={1} />
+          <text x={NODE_WIDTH - 89} y={20} textAnchor="middle" dominantBaseline="middle"
+            fill={T.accent} fontSize={9} fontWeight={700} fontFamily={T.mono}>MAIN</text>
+        </>
+      )}
 
       <rect x={0} y={0} width={NODE_WIDTH - 28} height={NODE_HEADER_H} rx={12}
         fill="transparent" style={{ cursor: "move" }}
@@ -215,8 +229,8 @@ function TableNode({ node, onRemove, onStartDrag, onPortDown, onPortUp, connecti
             <text x={29} y={fy + 15} textAnchor="middle" dominantBaseline="middle"
               fill={T.text3} fontSize={9} fontFamily={T.mono}>{field.type}</text>
 
-            <text x={54} y={cy} dominantBaseline="middle"
-              fill={T.text2} fontSize={12} fontFamily={T.mono}>{field.name}</text>
+            <text x={58} y={cy} dominantBaseline="middle"
+              fill={T.text2} fontSize={12.5} fontFamily={T.mono}>{field.name}</text>
 
             {field.pk && <text x={NODE_WIDTH - 24} y={cy} dominantBaseline="middle" fontSize={11}>🔑</text>}
             {field.fk && <text x={NODE_WIDTH - 24} y={cy} dominantBaseline="middle" fontSize={11}>🔗</text>}
@@ -406,6 +420,13 @@ export default function QueryBuilder() {
   const [dbSources, setDbSources] = useState({});
   const [loading, setLoading] = useState(true);
   const [ds, setDs] = useState(null);
+  const [sourceSearch, setSourceSearch] = useState("");
+
+  // ── Editing state ──
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [running, setRunning] = useState(false);
 
   const svgRef = useRef(null);
   const dragRef = useRef(null);
@@ -416,6 +437,10 @@ export default function QueryBuilder() {
   useEffect(() => { scaleRef.current = scale; }, [scale]);
   useEffect(() => { panRef.current = pan; }, [pan]);
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+
+  useEffect(() => {
+    try { sessionStorage.setItem("sidebar-minimized", "true"); } catch (_) {}
+  }, []);
 
   const toCanvas = useCallback((sx, sy) => {
     const rect = svgRef.current.getBoundingClientRect();
@@ -463,33 +488,111 @@ export default function QueryBuilder() {
     api(`/api/v1/datasets/${id}`)
       .then((data) => {
         setDs(data);
-        const sources = data.definition?.sources || data.definition?.tables || [];
-        const defJoins = data.definition?.joins || [];
+        setEditName(data.name || "");
+        setEditDesc(data.description || "");
+        const rawJoins = data.definition?.joins ?? data.definition?.relationships ?? data.relationships ?? [];
+        const defJoins = Array.isArray(rawJoins)
+          ? rawJoins
+          : Array.isArray(rawJoins?.edges)
+            ? rawJoins.edges
+            : Array.isArray(rawJoins?.items)
+              ? rawJoins.items
+              : [];
 
-        const builtNodes = sources.map((s, i) => ({
-          id: s.id || `src-${i}`,
-          name: s.name,
-          schema: s.schema || "dbo",
-          x: s.position?.x ?? (100 + (i % 3) * 280),
-          y: s.position?.y ?? (80 + Math.floor(i / 3) * 250),
-          cols: [],
-          dataSourceId: s.dataSourceId,
-          dataSource: s.dataSource || "Unknown",
-          sourceId: s.sourceId,
-          dotColor: DOT_COLORS[i % DOT_COLORS.length],
-        }));
+        const builtNodes = (Array.isArray(sources) ? sources : [])
+          .map((s, i) => {
+            const rawX = s?.position?.x ?? s?.x;
+            const rawY = s?.position?.y ?? s?.y;
+            const x = Number.isFinite(Number(rawX)) ? Number(rawX) : (100 + (i % 3) * 280);
+            const y = Number.isFinite(Number(rawY)) ? Number(rawY) : (80 + Math.floor(i / 3) * 250);
+            const tableOrder = Number.isFinite(Number(s?.tableOrder)) ? Number(s.tableOrder) : i;
 
-        const builtEdges = defJoins.map(j => ({
-          id: j.id || uid(),
-          from: j.from,
-          fromField: j.onLeft || j.fromField || "",
-          to: j.to,
-          toField: j.onRight || j.toField || "",
-          type: j.type || "INNER",
-        }));
+            return {
+              id: s?.id || `src-${i}`,
+              name: s?.name || s?.table_name || `Table ${i + 1}`,
+              schema: s?.schema || "dbo",
+              x,
+              y,
+              tableOrder,
+              cols: [],
+              dataSourceId: s?.dataSourceId,
+              dataSource: s?.dataSource || "Unknown",
+              sourceId: s?.sourceId,
+            };
+          })
+          .sort((a, b) => (a.tableOrder ?? 0) - (b.tableOrder ?? 0))
+          .map((n, i) => ({ ...n, dotColor: DOT_COLORS[i % DOT_COLORS.length] }));
+
+        const byNodeId = new Map(builtNodes.map((n) => [String(n.id), n.id]));
+        const bySourceId = new Map(
+          builtNodes
+            .filter((n) => n.sourceId !== undefined && n.sourceId !== null)
+            .map((n) => [String(n.sourceId), n.id])
+        );
+        const byName = new Map(builtNodes.map((n) => [String(n.name || "").toLowerCase(), n.id]));
+
+        const resolveNodeId = (rawId, rawName) => {
+          if (rawId !== undefined && rawId !== null) {
+            const k = String(rawId);
+            if (byNodeId.has(k)) return byNodeId.get(k);
+            if (bySourceId.has(k)) return bySourceId.get(k);
+          }
+          if (rawName) {
+            const nk = String(rawName).toLowerCase();
+            if (byName.has(nk)) return byName.get(nk);
+          }
+          return null;
+        };
+
+        const builtEdges = (Array.isArray(defJoins) ? defJoins : [])
+          .map((j, i) => {
+            const fromId = resolveNodeId(
+              j.from ?? j.source ?? j.sourceId ?? j.sourceTableId ?? j.leftTableId,
+              j.fromTableName ?? j.sourceTableName
+            );
+            const toId = resolveNodeId(
+              j.to ?? j.target ?? j.targetId ?? j.targetTableId ?? j.rightTableId,
+              j.toTableName ?? j.targetTableName
+            );
+
+            if (!fromId || !toId || fromId === toId) return null;
+
+            const firstMap = Array.isArray(j.columnMappings) ? j.columnMappings[0] : null;
+            const fromField = j.onLeft || j.fromField || j.sourceColumn || j.leftColumn || firstMap?.sourceColumnName || "";
+            const toField = j.onRight || j.toField || j.targetColumn || j.rightColumn || firstMap?.targetColumnName || "";
+            const type = String(j.type || j.joinType || "INNER").toUpperCase();
+
+            return {
+              id: j.id || `join-${i}-${fromId}-${toId}`,
+              from: fromId,
+              fromField,
+              to: toId,
+              toField,
+              type,
+            };
+          })
+          .filter(Boolean);
+
+        console.log("=== DATASET LOAD DEBUG ===");
+        console.log("Dataset ID:", id);
+        console.log("Full data:", data);
+        console.log("builtNodes:", builtNodes.map(n => ({ id: n.id, name: n.name, sourceId: n.sourceId })));
+        console.log("rawJoins:", rawJoins);
+        console.log("defJoins:", defJoins);
+        console.log("builtEdges:", builtEdges);
 
         setNodes(builtNodes);
         setEdges(builtEdges);
+
+        if (builtNodes.length > 0) {
+          const minX = Math.min(...builtNodes.map((n) => n.x));
+          const minY = Math.min(...builtNodes.map((n) => n.y));
+          setScale(1);
+          setPan({ x: 80 - minX, y: 80 - minY });
+        } else {
+          setScale(1);
+          setPan({ x: 0, y: 0 });
+        }
 
         builtNodes.forEach((t) => {
           if (t.dataSourceId && t.name) {
@@ -719,8 +822,9 @@ export default function QueryBuilder() {
     if (!fn || !tn) return null;
     const fp = portPos(fn, e.fromField, "right");
     const tp = portPos(tn, e.toField, "left");
-    if (!fp || !tp) return null;
-    return { ...e, path: bez(fp.x, fp.y, tp.x, tp.y), mx: (fp.x + tp.x) / 2, my: (fp.y + tp.y) / 2 - 10, color: edgeColor(e.type) };
+    const start = fp || { x: fn.x + NODE_WIDTH, y: fn.y + NODE_HEADER_H / 2 };
+    const end = tp || { x: tn.x, y: tn.y + NODE_HEADER_H / 2 };
+    return { ...e, path: bez(start.x, start.y, end.x, end.y), mx: (start.x + end.x) / 2, my: (start.y + end.y) / 2 - 10, color: edgeColor(e.type) };
   }).filter(Boolean), [edges, nodes]);
 
   const liveConnPath = useMemo(() => {
@@ -733,6 +837,107 @@ export default function QueryBuilder() {
       ? bez(fp.x, fp.y, connMouse.x, connMouse.y)
       : bez(connMouse.x, connMouse.y, fp.x, fp.y);
   }, [conn, connMouse, nodes]);
+
+  const filteredDbSourceEntries = useMemo(() => {
+    const q = sourceSearch.trim().toLowerCase();
+    const entries = Object.entries(dbSources);
+    if (!q) return entries;
+
+    return entries.filter(([, db]) => {
+      if ((db.label || "").toLowerCase().includes(q)) return true;
+      return Object.keys(db.tables || {}).some((tbl) => tbl.toLowerCase().includes(q));
+    });
+  }, [dbSources, sourceSearch]);
+
+  const mainTableId = useMemo(() => {
+    if (!nodes.length) return null;
+    const sortedByOrder = [...nodes].sort((a, b) => {
+      const ao = Number.isFinite(Number(a?.tableOrder)) ? Number(a.tableOrder) : Number.MAX_SAFE_INTEGER;
+      const bo = Number.isFinite(Number(b?.tableOrder)) ? Number(b.tableOrder) : Number.MAX_SAFE_INTEGER;
+      return ao - bo;
+    });
+    const byOrder = sortedByOrder[0]?.id;
+    if (byOrder) return byOrder;
+
+    const degree = new Map(nodes.map((n) => [n.id, 0]));
+    edges.forEach((e) => {
+      degree.set(e.from, (degree.get(e.from) || 0) + 1);
+      degree.set(e.to, (degree.get(e.to) || 0) + 1);
+    });
+    return [...degree.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || nodes[0].id;
+  }, [nodes, edges]);
+
+  const mainTable = useMemo(() => nodes.find((n) => n.id === mainTableId) || null, [nodes, mainTableId]);
+
+  const mainConnections = useMemo(() => {
+    if (!mainTableId) return [];
+    return edges
+      .filter((e) => e.from === mainTableId || e.to === mainTableId)
+      .map((e) => {
+        const fromMain = e.from === mainTableId;
+        const otherId = fromMain ? e.to : e.from;
+        const otherName = nodes.find((n) => n.id === otherId)?.name || otherId;
+        return {
+          id: e.id,
+          type: e.type,
+          otherId,
+          otherName,
+          mainField: fromMain ? e.fromField : e.toField,
+          otherField: fromMain ? e.toField : e.fromField,
+          direction: fromMain ? "out" : "in",
+        };
+      });
+  }, [edges, nodes, mainTableId]);
+
+  /* ── Save Dataset ── */
+  const handleSave = async () => {
+    if (!editName.trim()) {
+      alert("Dataset name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      const normalizedNodes = nodes.map((n, i) => ({
+        ...n,
+        tableOrder: i,
+        position: { x: n.x, y: n.y },
+      }));
+      const body = {
+        name: editName.trim(),
+        description: editDesc.trim(),
+        definition: {
+          type: ds?.definition_type || "join",
+          sources: normalizedNodes,
+          tables: normalizedNodes,
+          joins: edges,
+        },
+        definition_type: ds?.definition_type || "join",
+        status: ds?.status || "draft",
+      };
+      await api(`/api/v1/datasets/${id}`, { method: "PUT", body: JSON.stringify(body) });
+      setDs(prev => ({ ...prev, name: editName, description: editDesc }));
+      alert("Dataset saved successfully");
+    } catch (err) {
+      alert("Save failed: " + (err?.message || "Unknown error"));
+    }
+    setSaving(false);
+  };
+
+  /* ── Run Query ── */
+  const handleRunQuery = async () => {
+    setRunning(true);
+    try {
+      const result = await api(`/api/v1/datasets/${id}/preview`, {
+        method: "POST",
+        body: JSON.stringify({ definition: { type: "join", sources: nodes, joins: edges } }),
+      });
+      const rowCount = result?.rows?.length || result?.data?.length || 0;
+      alert(`Query executed! (${rowCount} rows)`);
+    } catch (err) {
+      alert("Query failed: " + (err?.message || "Unknown error"));
+    }
+    setRunning(false);
+  };
 
   const zoomPct = Math.round(scale * 100);
   const btnStyle = (color = T.text2) => ({
@@ -770,39 +975,51 @@ export default function QueryBuilder() {
         <div style={{ flex: 1, display: "grid", gridTemplateRows: "56px 1fr", gridTemplateColumns: "264px 1fr 310px", overflow: "hidden" }}>
 
           {/* ─── HEADER ─────────────────────────────────────────────────────────── */}
-          <header style={{ gridColumn: "1/-1", background: T.surface, borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", padding: "0 20px", gap: 20, zIndex: 200 }}>
-            <button onClick={() => navigate(`/datasets/${id}`)} style={{ background: "none", border: "none", color: T.text2, cursor: "pointer", fontSize: 16, padding: "4px 8px", borderRadius: 4, display: "flex", alignItems: "center", gap: 4 }}
-              onMouseEnter={e => e.currentTarget.style.color = T.text}
-              onMouseLeave={e => e.currentTarget.style.color = T.text2}
-            >← <span style={{ fontSize: 12 }}>Back</span></button>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 15, letterSpacing: "-0.3px", flexShrink: 0 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg,${T.accent},${T.purple})`, display: "grid", placeItems: "center", fontSize: 13, color: "#fff" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-              </div>
+          <header style={{ gridColumn: "1/-1", background: T.surface, borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", padding: "0 20px", gap: 12, zIndex: 200 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg,${T.accent},${T.purple})`, display: "grid", placeItems: "center", fontSize: 13, color: "#fff", flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             </div>
+            <input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              style={{
+                background: "none", border: "none", outline: "none", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.sans,
+                minWidth: 200, padding: "4px 6px", borderRadius: 4, cursor: "text"
+              }}
+              placeholder="Dataset name..."
+              onFocus={e => e.currentTarget.style.background = T.surface2}
+              onBlur={e => e.currentTarget.style.background = "none"}
+            />
             <div style={{ width: 1, height: 20, background: T.border, flexShrink: 0 }} />
-            <div style={{ fontFamily: T.mono, fontSize: 12, color: T.text3, display: "flex", gap: 6 }}>
-              <span style={{ color: T.text3 }}>definition /</span><span style={{ color: T.text2 }}>{ds?.name || "..."}</span>
-            </div>
-            <div style={{ width: 1, height: 20, background: T.border, flexShrink: 0 }} />
-            <div style={{ display: "flex", gap: 3, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, padding: 3 }}>
-              {["Builder", "Schema", "History"].map(t => (
-                <button key={t} style={{ padding: "5px 12px", borderRadius: 4, fontSize: 12, fontWeight: 500, cursor: "pointer", border: "none", fontFamily: T.sans, background: t === "Builder" ? T.surface2 : "transparent", color: t === "Builder" ? T.text : T.text3, transition: "all 0.15s" }}>{t}</button>
-              ))}
-            </div>
-            <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
-              <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text3 }}>
-                Tables: <strong style={{ color: T.accent, fontWeight: 500 }}>{nodes.length}</strong>
-                <span style={{ marginLeft: 12 }}>Joins: <strong style={{ color: T.green, fontWeight: 500 }}>{edges.length}</strong></span>
-              </span>
-              {[["ghost", "↩ Undo"], ["ghost", "⤴ Export"], ["primary", "💾 Save"], ["run", "▶ Run"]].map(([v, l]) => (
-                <button key={l} style={{
-                  padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer", border: "none", fontFamily: T.sans, display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
-                  ...(v === "ghost" ? { background: "transparent", color: T.text2, border: `1px solid ${T.border2}` } : {}),
-                  ...(v === "primary" ? { background: T.surface3, color: T.text, border: `1px solid ${T.border2}` } : {}),
-                  ...(v === "run" ? { background: T.accent, color: "#fff" } : {})
-                }}>{l}</button>
-              ))}
+            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.text3, flexShrink: 0 }}>
+              {nodes.length} tables • {edges.length} joins
+            </span>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                onClick={handleRunQuery}
+                disabled={running || !id}
+                style={{
+                  padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: running || !id ? "not-allowed" : "pointer",
+                  border: "none", fontFamily: T.sans, display: "flex", alignItems: "center", gap: 5,
+                  whiteSpace: "nowrap", background: "rgba(139,92,246,0.8)", color: "#fff", opacity: running || !id ? 0.6 : 1,
+                  transition: "all 0.15s"
+                }}
+                title={!id ? "Save first" : "Execute query"}
+              >
+                {running ? "⟳" : "▶"} Run Query
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                style={{
+                  padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: saving ? "not-allowed" : "pointer",
+                  border: "none", fontFamily: T.sans, display: "flex", alignItems: "center", gap: 5,
+                  whiteSpace: "nowrap", background: T.accent, color: "#fff", opacity: saving ? 0.6 : 1,
+                  transition: "all 0.15s"
+                }}
+              >
+                {saving ? "⟳" : "💾"} Save
+              </button>
             </div>
           </header>
 
@@ -812,7 +1029,12 @@ export default function QueryBuilder() {
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: T.text3, marginBottom: 10 }}>Data Sources</div>
               <div style={{ display: "flex", alignItems: "center", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 10px", gap: 8 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.text3} strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
-                <input style={{ background: "none", border: "none", outline: "none", color: T.text, fontSize: 12, fontFamily: T.sans, width: "100%" }} placeholder="Search tables…" />
+                <input
+                  value={sourceSearch}
+                  onChange={(e) => setSourceSearch(e.target.value)}
+                  style={{ background: "none", border: "none", outline: "none", color: T.text, fontSize: 12, fontFamily: T.sans, width: "100%" }}
+                  placeholder="Search tables…"
+                />
               </div>
               {/* Drag hint */}
               <div style={{ marginTop: 10, padding: "7px 10px", borderRadius: 6, background: T.accentDim, border: `1px dashed ${T.accent}30`, display: "flex", alignItems: "center", gap: 7 }}>
@@ -821,17 +1043,15 @@ export default function QueryBuilder() {
               </div>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: "8px", scrollbarWidth: "thin", scrollbarColor: `${T.border2} transparent` }}>
-              {Object.entries(dbSources).map(([key, db]) => (
+              {filteredDbSourceEntries.map(([key, db]) => (
                 <DbGroup key={key} dbKey={key} db={db} nodes={nodes} onAdd={addTable} onDragStart={handleSidebarDragStart} onExpand={loadTablesForSource} />
               ))}
               {Object.keys(dbSources).length === 0 && (
                 <div style={{ padding: "16px", textAlign: "center", color: T.text3, fontSize: 12 }}>Loading data sources…</div>
               )}
-            </div>
-            <div style={{ padding: "12px 14px", borderTop: `1px solid ${T.border}` }}>
-              <button style={{ width: "100%", padding: "8px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer", border: `1px solid ${T.accent}30`, background: T.accentDim, color: T.accent, fontFamily: T.sans, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                + Connect Database
-              </button>
+              {Object.keys(dbSources).length > 0 && filteredDbSourceEntries.length === 0 && (
+                <div style={{ padding: "16px", textAlign: "center", color: T.text3, fontSize: 12 }}>No matching data sources</div>
+              )}
             </div>
           </aside>
 
@@ -892,27 +1112,6 @@ export default function QueryBuilder() {
               </defs>
 
               <g transform={`translate(${pan.x},${pan.y}) scale(${scale})`}>
-                {edgePaths.map(ep => {
-                  const ak = ep.color === T.green ? "green" : ep.color === T.purple ? "purple" : ep.color === "#f97316" ? "orange" : "accent";
-                  return (
-                    <g key={ep.id}>
-                      <path d={ep.path} fill="none" stroke={ep.color} strokeWidth={8} opacity={0.05} />
-                      <path d={ep.path} fill="none" stroke={ep.color} strokeWidth={2}
-                        strokeDasharray="5 4" opacity={0.7} markerEnd={`url(#arr-${ak})`}
-                        style={{ animation: "dashFlow 1.5s linear infinite" }} />
-                      <rect x={ep.mx - 22} y={ep.my - 10} width={44} height={20} rx={4} fill={T.surface2} stroke={ep.color} strokeWidth={1} opacity={0.95} />
-                      <text x={ep.mx} y={ep.my + 1} textAnchor="middle" dominantBaseline="middle"
-                        fill={ep.color} fontSize={9} fontWeight="500" fontFamily={T.mono}>{ep.type}</text>
-                    </g>
-                  );
-                })}
-
-                {liveConnPath && (
-                  <path d={liveConnPath} fill="none" stroke={T.accent} strokeWidth={2}
-                    strokeDasharray="5 4" opacity={0.9}
-                    style={{ animation: "dashFlow 0.8s linear infinite" }} />
-                )}
-
                 {nodes.map(node => (
                   <TableNode key={node.id}
                     node={node}
@@ -921,8 +1120,30 @@ export default function QueryBuilder() {
                     onPortDown={handlePortDown}
                     onPortUp={handlePortUp}
                     connecting={conn}
+                    isMain={node.id === mainTableId}
                   />
                 ))}
+
+                {edgePaths.map(ep => {
+                  const ak = ep.color === T.green ? "green" : ep.color === T.purple ? "purple" : ep.color === "#f97316" ? "orange" : "accent";
+                  return (
+                    <g key={ep.id} pointerEvents="none">
+                      <path d={ep.path} fill="none" stroke={ep.color} strokeWidth={10} opacity={0.14} />
+                      <path d={ep.path} fill="none" stroke={ep.color} strokeWidth={2.6}
+                        strokeDasharray="5 4" opacity={0.95} markerEnd={`url(#arr-${ak})`}
+                        style={{ animation: "dashFlow 1.5s linear infinite" }} />
+                      <rect x={ep.mx - 24} y={ep.my - 10} width={48} height={20} rx={4} fill={T.surface2} stroke={ep.color} strokeWidth={1.2} opacity={0.98} />
+                      <text x={ep.mx} y={ep.my + 1} textAnchor="middle" dominantBaseline="middle"
+                        fill={ep.color} fontSize={9} fontWeight="700" fontFamily={T.mono}>{ep.type}</text>
+                    </g>
+                  );
+                })}
+
+                {liveConnPath && (
+                  <path d={liveConnPath} fill="none" stroke={T.accent} strokeWidth={2.3}
+                    strokeDasharray="5 4" opacity={1} pointerEvents="none"
+                    style={{ animation: "dashFlow 0.8s linear infinite" }} />
+                )}
 
                 {/* Drop ghost at cursor */}
                 {isDragOver && dropGhost && draggingTable && !nodesRef.current.find(n => n.name === draggingTable.tableId && n.dataSourceId === draggingTable.dbKey) && (
@@ -979,20 +1200,6 @@ export default function QueryBuilder() {
                 <>
                   <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: T.text3, marginBottom: 10 }}>Generated SQL</div>
                   <SqlPanel nodes={nodes} edges={edges} />
-                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: T.text3, marginBottom: 10 }}>Options</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-                    {[["LIMIT", "100"], ["OFFSET", "0"]].map(([l, v]) => (
-                      <div key={l}>
-                        <div style={{ fontSize: 10, color: T.text3, marginBottom: 6, fontFamily: T.mono }}>{l}</div>
-                        <input defaultValue={v} style={{ width: "100%", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 10px", color: T.text, fontFamily: T.mono, fontSize: 12, outline: "none" }} />
-                      </div>
-                    ))}
-                  </div>
-                  {["Distinct", "Explain"].map(o => (
-                    <label key={o} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.text2, cursor: "pointer", marginBottom: 8 }}>
-                      <input type="checkbox" defaultChecked={o === "Distinct"} style={{ accentColor: T.accent }} />{o} results
-                    </label>
-                  ))}
                 </>
               )}
               {activeTab === "joins" && (
@@ -1000,6 +1207,36 @@ export default function QueryBuilder() {
                   <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: T.text3, marginBottom: 10, display: "flex", justifyContent: "space-between" }}>
                     <span>Active Joins</span><span style={{ color: T.accent }}>{edges.length}</span>
                   </div>
+                  {mainTable && (
+                    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: 12, marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: T.text3, marginBottom: 8 }}>
+                        Main Table
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.accent, boxShadow: `0 0 6px ${T.accent}` }} />
+                        <span style={{ color: T.text, fontFamily: T.mono, fontSize: 12, fontWeight: 700 }}>{mainTable.name}</span>
+                        <span style={{ marginLeft: "auto", color: T.text3, fontFamily: T.mono, fontSize: 10 }}>{mainConnections.length} links</span>
+                      </div>
+                      {mainConnections.length === 0 ? (
+                        <div style={{ color: T.text3, fontSize: 12 }}>No joins connected to main table</div>
+                      ) : (
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {mainConnections.map((c) => (
+                            <div key={c.id} style={{ background: T.surface2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "6px 8px", fontFamily: T.mono, fontSize: 11 }}>
+                              <span style={{ color: T.accent }}>{mainTable.name}</span>
+                              <span style={{ color: T.text3 }}>.</span>
+                              <span style={{ color: T.text2 }}>{c.mainField || "?"}</span>
+                              <span style={{ color: T.text3 }}>  ↔  </span>
+                              <span style={{ color: T.accent }}>{c.otherName}</span>
+                              <span style={{ color: T.text3 }}>.</span>
+                              <span style={{ color: T.text2 }}>{c.otherField || "?"}</span>
+                              <span style={{ marginLeft: 8, color: edgeColor(c.type), fontSize: 10 }}>{c.type}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <JoinsPanel edges={edges} nodes={nodes}
                     onChangeType={(id, t) => setEdges(p => p.map(e => e.id === id ? { ...e, type: t } : e))}
                     onRemove={(id) => setEdges(p => p.filter(e => e.id !== id))} />
@@ -1007,18 +1244,17 @@ export default function QueryBuilder() {
               )}
               {activeTab === "columns" && (
                 <>
-                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: T.text3, marginBottom: 10 }}>Select Columns</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: T.text3, marginBottom: 10 }}>Table Columns</div>
                   {nodes.map(n => (
                     <div key={n.id} style={{ marginBottom: 16 }}>
                       <div style={{ fontSize: 11, color: T.text3, marginBottom: 8, fontFamily: T.mono, display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ color: n.dotColor || T.accent }}>●</span>{n.name || n.id}
                       </div>
                       {(n.cols || []).map(f => (
-                        <label key={f.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, cursor: "pointer", marginBottom: 2 }}>
-                          <input type="checkbox" defaultChecked style={{ accentColor: T.accent }} />
+                        <div key={f.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, marginBottom: 2 }}>
                           <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text2, flex: 1 }}>{f.name}</span>
                           <span style={{ fontFamily: T.mono, fontSize: 10, color: T.text3, background: T.bg, border: `1px solid ${T.border}`, padding: "2px 6px", borderRadius: 4 }}>{f.type}</span>
-                        </label>
+                        </div>
                       ))}
                       {(n.cols || []).length === 0 && <div style={{ fontSize: 11, color: T.text3, padding: "4px 8px", fontStyle: "italic" }}>Loading columns…</div>}
                     </div>
@@ -1033,8 +1269,8 @@ export default function QueryBuilder() {
                 </>
               )}
             </div>
-            <div style={{ display: "flex", gap: 10, padding: "16px 20px", borderTop: `1px solid ${T.border}`, background: T.surface }}>
-              <button style={{ flex: 1, padding: "10px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: T.accent, color: "#fff", fontFamily: T.sans, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>▶ Execute Query</button>
+            <div style={{ padding: "12px 20px", borderTop: `1px solid ${T.border}`, background: T.surface, fontFamily: T.mono, fontSize: 11, color: T.text3 }}>
+              API-backed definition preview
             </div>
           </aside>
 

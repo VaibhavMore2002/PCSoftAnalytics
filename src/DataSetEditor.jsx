@@ -138,6 +138,7 @@ export default function DataSetEditor() {
   /* ── State ── */
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [running, setRunning] = useState(false);
 
   // Dataset fields
   const [name, setName] = useState("");
@@ -176,7 +177,29 @@ export default function DataSetEditor() {
         setSyncMethod(ds.sync_method || "full");
         setSyncFrequency(ds.sync_frequency || "manual");
         setSyncEnabled(ds.sync_enabled || false);
-        setCanvasTables(ds.definition?.sources || ds.definition?.tables || []);
+        const rawSources = ds.definition?.sources || ds.definition?.tables || [];
+        const normalizedSources = (Array.isArray(rawSources) ? rawSources : [])
+          .map((s, i) => {
+            const rawX = s?.position?.x ?? s?.x;
+            const rawY = s?.position?.y ?? s?.y;
+            const x = Number.isFinite(Number(rawX)) ? Number(rawX) : 100 + i * 220;
+            const y = Number.isFinite(Number(rawY)) ? Number(rawY) : 120;
+            const tableOrder = Number.isFinite(Number(s?.tableOrder)) ? Number(s.tableOrder) : i;
+
+            return {
+              ...s,
+              id: s?.id || `table-${s?.sourceId || s?.name || i}`,
+              name: s?.name || s?.table_name || `Table ${i + 1}`,
+              schema: s?.schema || "dbo",
+              tableOrder,
+              position: { x, y },
+              x,
+              y,
+            };
+          })
+          .sort((a, b) => (a.tableOrder ?? 0) - (b.tableOrder ?? 0));
+
+        setCanvasTables(normalizedSources);
         setSelectedColumns(ds.definition?.columns || []);
         setJoins(ds.definition?.joins || []);
       })
@@ -223,10 +246,15 @@ export default function DataSetEditor() {
     );
     if (already) { push("Table already added", "error"); return; }
 
+    const nextOrder = canvasTables.reduce((maxOrder, t) => {
+      const ord = Number.isFinite(Number(t?.tableOrder)) ? Number(t.tableOrder) : -1;
+      return Math.max(maxOrder, ord);
+    }, -1) + 1;
+
     const newTable = {
       id: `table-${table.id || table.table_id || Date.now()}`,
       name: table.name || table.table_name,
-      tableOrder: canvasTables.length,
+      tableOrder: nextOrder,
       position: { x: 100 + canvasTables.length * 220, y: 120 },
       sourceType: "table",
       sourceId: table.id || table.table_id,
@@ -251,10 +279,26 @@ export default function DataSetEditor() {
     if (!name.trim()) { push("Name is required", "error"); return; }
     setSaving(true);
 
+    const normalizedCanvasTables = canvasTables.map((t, i) => {
+      const rawX = t?.position?.x ?? t?.x;
+      const rawY = t?.position?.y ?? t?.y;
+      const x = Number.isFinite(Number(rawX)) ? Number(rawX) : 100 + i * 220;
+      const y = Number.isFinite(Number(rawY)) ? Number(rawY) : 120;
+      const tableOrder = Number.isFinite(Number(t?.tableOrder)) ? Number(t.tableOrder) : i;
+
+      return {
+        ...t,
+        tableOrder,
+        position: { x, y },
+        x,
+        y,
+      };
+    });
+
     const definition = {
       type: defType,
-      sources: canvasTables,
-      tables: canvasTables,
+      sources: normalizedCanvasTables,
+      tables: normalizedCanvasTables,
       columns: selectedColumns,
       joins,
     };
@@ -287,6 +331,30 @@ export default function DataSetEditor() {
       }
     } catch { push("Save failed", "error"); }
     setSaving(false);
+  };
+
+  /* ── Run Query ── */
+  const handleRunQuery = async () => {
+    if (!id) { push("Dataset not saved yet. Save first to run query", "error"); return; }
+    setRunning(true);
+    try {
+      const result = await api(`/api/v1/datasets/${id}/preview`, {
+        method: "POST",
+        body: JSON.stringify({
+          definition: {
+            type: defType,
+            sources: canvasTables,
+            joins,
+          },
+        }),
+      });
+      const rowCount = result?.rows?.length || result?.data?.length || 0;
+      push(`Query executed successfully (${rowCount} rows)`);
+    } catch (err) {
+      const msg = err?.message || "Query failed";
+      push(msg, "error");
+    }
+    setRunning(false);
   };
 
   /* ── Filtered sources ── */
@@ -338,6 +406,11 @@ export default function DataSetEditor() {
                 { value: "active", label: "Active" },
                 { value: "archived", label: "Archived" },
               ]} />
+            <button className={btnP} style={{ background: "rgba(139,92,246,0.8)", opacity: (running || !id) ? 0.7 : 1 }}
+              disabled={running || !id} onClick={handleRunQuery}
+              title={!id ? "Save dataset first" : "Execute the query"}>
+              {running ? <Spin /> : <I d={ico.eye} size={14} color="#fff" />} Run Query
+            </button>
             <button className={btnP} style={{ background: "var(--nav-active-bg)", opacity: saving ? 0.7 : 1 }}
               disabled={saving} onClick={handleSave}>
               {saving ? <Spin /> : <I d={ico.save} size={14} color="#fff" />} Save
@@ -387,6 +460,7 @@ export default function DataSetEditor() {
           {/* ═══ Center Panel: Canvas ═══ */}
           <div className="flex-1 flex flex-col overflow-hidden">
             <CanvasPanel
+              fitKey={id || "new"}
               tables={canvasTables}
               setTables={setCanvasTables}
               joins={joins}
@@ -494,14 +568,20 @@ function SourceNode({ source, expanded, tables, onToggle, onAddTable }) {
 /* ═══════════════════════════════════════════════════════════
    Canvas Panel (visual table layout)
    ═══════════════════════════════════════════════════════════ */
-function CanvasPanel({ tables, setTables, joins, setJoins, selectedTable, setSelectedTable, onRemoveTable }) {
+function CanvasPanel({ fitKey, tables, setTables, joins, setJoins, selectedTable, setSelectedTable, onRemoveTable }) {
   const canvasRef = useRef(null);
+  const didInitialFitRef = useRef(false);
   const [dragging, setDragging] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [joinMode, setJoinMode] = useState(null); // { from, type }
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [panning, setPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    didInitialFitRef.current = false;
+    setPanOffset({ x: 0, y: 0 });
+  }, [fitKey]);
 
   const handleMouseDown = (e, tableId) => {
     if (joinMode) {
@@ -562,6 +642,14 @@ function CanvasPanel({ tables, setTables, joins, setJoins, selectedTable, setSel
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+
+  useEffect(() => {
+    if (didInitialFitRef.current || tables.length === 0) return;
+    const minX = Math.min(...tables.map((t) => Number(t?.position?.x ?? t?.x ?? 0)));
+    const minY = Math.min(...tables.map((t) => Number(t?.position?.y ?? t?.y ?? 0)));
+    setPanOffset({ x: 80 - minX, y: 80 - minY });
+    didInitialFitRef.current = true;
+  }, [tables]);
 
   const handleCanvasMouseDown = (e) => {
     if (e.target === canvasRef.current || e.target.closest("[data-canvas-bg]")) {

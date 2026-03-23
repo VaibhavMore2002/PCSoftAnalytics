@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { memo, useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
 import { useTheme } from "./ThemeContext.jsx";
 import { useApp } from "./AppContext.jsx";
-
 /* ═══════════════════════════════════════════════════════════
    Theme (matches qr.jsx visual style, with light/dark)
    ═══════════════════════════════════════════════════════════ */
@@ -150,12 +149,12 @@ function JoinsPanel({ edges, nodes, T }) {
             <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: ec }} />
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontFamily: MONO, color: ec, background: `${ec}18`, border: `1px solid ${ec}40`, padding: "2px 8px", borderRadius: 4 }}>{(edge.type || "INNER")} JOIN</span>
-              <span style={{ fontSize: 12, fontWeight: 600, flex: 1, color: T.text }}>{fromNode?.name || "?"} \u2192 {toNode?.name || "?"}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, flex: 1, color: T.text }}>{fromNode?.name || "?"} → {toNode?.name || "?"}</span>
             </div>
             {edge.onLeft && edge.onRight && (
               <div style={{ fontFamily: MONO, fontSize: 12, display: "flex", gap: 6, alignItems: "center", marginBottom: 10 }}>
                 <span style={{ color: T.accent }}>{fromNode?.name}</span><span style={{ color: T.text3 }}>.</span><span style={{ color: T.text2 }}>{edge.onLeft}</span>
-                <span style={{ color: T.text3 }}>\u2500\u2500</span>
+                <span style={{ color: T.text3 }}>──</span>
                 <span style={{ color: T.accent }}>{toNode?.name}</span><span style={{ color: T.text3 }}>.</span><span style={{ color: T.text2 }}>{edge.onRight}</span>
               </div>
             )}
@@ -178,7 +177,7 @@ function JoinsPanel({ edges, nodes, T }) {
 }
 
 /* ── Table Node (SVG) ── */
-function TableNode({ node, T, onStartDrag }) {
+const TableNode = memo(function TableNode({ node, T, onStartDrag }) {
   const fields = node.cols || [];
   const nh = nodeHeight(fields.length);
   const dbColor = node.dotColor || T.accent;
@@ -232,7 +231,7 @@ function TableNode({ node, T, onStartDrag }) {
       })}
     </g>
   );
-}
+});
 
 /* ═══════════════════════════════════════════════════════════
    DataSetDefinition \u2014 Main Component
@@ -255,6 +254,8 @@ export default function DataSetDefinition() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const svgRef = useRef(null);
   const dragRef = useRef(null);
+  const moveRafRef = useRef(null);
+  const latestMouseRef = useRef({ x: 0, y: 0 });
   const scaleRef = useRef(scale);
   const panRef = useRef(pan);
   const nodesRef = useRef(nodes);
@@ -372,18 +373,44 @@ export default function DataSetDefinition() {
     dragRef.current = { type: "node", nodeId, sx: cp.x, sy: cp.y, ox: node.x, oy: node.y };
   }, [toCanvas]);
 
-  const handleMouseMove = useCallback((e) => {
+  const applyDragMove = useCallback((clientX, clientY) => {
     const d = dragRef.current;
     if (!d) return;
     if (d.type === "pan") {
-      setPan({ x: e.clientX - d.startX, y: e.clientY - d.startY });
+      setPan({ x: clientX - d.startX, y: clientY - d.startY });
     } else if (d.type === "node") {
-      const cp = toCanvas(e.clientX, e.clientY);
+      const cp = toCanvas(clientX, clientY);
       setNodes((p) => p.map((n) => (n.id === d.nodeId ? { ...n, x: d.ox + cp.x - d.sx, y: d.oy + cp.y - d.sy } : n)));
     }
   }, [toCanvas]);
 
-  const handleMouseUp = useCallback(() => { dragRef.current = null; }, []);
+  const handleMouseMove = useCallback((e) => {
+    if (!dragRef.current) return;
+    latestMouseRef.current = { x: e.clientX, y: e.clientY };
+    if (moveRafRef.current) return;
+
+    moveRafRef.current = requestAnimationFrame(() => {
+      moveRafRef.current = null;
+      const { x, y } = latestMouseRef.current;
+      applyDragMove(x, y);
+    });
+  }, [applyDragMove]);
+
+  const handleMouseUp = useCallback(() => {
+    dragRef.current = null;
+    if (moveRafRef.current) {
+      cancelAnimationFrame(moveRafRef.current);
+      moveRafRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (moveRafRef.current) {
+        cancelAnimationFrame(moveRafRef.current);
+      }
+    };
+  }, []);
 
   const autoArrange = () => {
     const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
