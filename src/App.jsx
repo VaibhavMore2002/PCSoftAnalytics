@@ -5,6 +5,7 @@ import Dashboard from "./analitics.jsx";
 import Settings from "./Settings.jsx";
 import DataSources from "./DataSources.jsx";
 import DataSourceDetail from "./DataSourceDetail.jsx";
+import DataSourceForm from "./DataSourceForm.jsx";
 import TableDetail from "./TableDetail.jsx";
 import DataSets from "./DataSets.jsx";
 import DataSetDetail from "./DataSetDetail.jsx";
@@ -28,7 +29,9 @@ function ProtectedRoutes() {
         <Route path="/dashboards/:id" element={<Dashboard />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/datasources" element={<DataSources />} />
+        <Route path="/datasources/new" element={<DataSourceForm />} />
         <Route path="/datasources/:id" element={<DataSourceDetail />} />
+        <Route path="/datasources/:id/edit" element={<DataSourceForm />} />
         <Route path="/datasources/:id/tables/:schema/:tableName" element={<TableDetail />} />
         <Route path="/datasets" element={<DataSets />} />
         <Route path="/datasets/:id" element={<DataSetDetail />} />
