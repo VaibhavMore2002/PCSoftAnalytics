@@ -252,6 +252,9 @@ export default function DataSourceDetail() {
   const [columnsCache, setColumnsCache] = useState({}); // key → col[]
   const [columnsLoadingKey, setColumnsLoadingKey] = useState(null);
   const [fallbackCounts, setFallbackCounts] = useState({}); // key -> { column_count, row_count, last_synced_at, *_unavailable }
+  const [selectedTables, setSelectedTables] = useState(new Set()); // set of "schema.table" keys
+  const [bulkSyncing, setBulkSyncing] = useState(false);
+  const [openActionMenu, setOpenActionMenu] = useState(null); // key of table whose ⋮ menu is open
   const TABLES_PAGE_SIZE = 25;
   const ACTIVITY_PAGE_SIZE = 15;
   const [tablesPage, setTablesPage] = useState(1);
@@ -503,6 +506,48 @@ export default function DataSourceDetail() {
     } catch (e) { push(e.message || "Failed to update sync", "error"); }
   };
 
+  /* ── Multi-select helpers ── */
+  const toggleTableSelect = (key) => setSelectedTables((prev) => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
+
+  const toggleSelectAll = () => {
+    setSelectedTables((prev) =>
+      prev.size === filteredTables.length
+        ? new Set()
+        : new Set(filteredTables.map((t) => `${t.schema_name || "dbo"}.${t.table_name}`))
+    );
+  };
+
+  const handleBulkSync = async (enable) => {
+    if (selectedTables.size === 0) return;
+    setBulkSyncing(true);
+    const targets = [];
+    for (const key of selectedTables) {
+      const t = mergedTables.find((x) => `${x.schema_name || "dbo"}.${x.table_name}` === key);
+      const tid = t?.syncInfo?.id ?? t?.id;
+      if (tid != null) targets.push({ t, tid });
+    }
+    if (targets.length === 0) { push("No valid table IDs found", "error"); setBulkSyncing(false); return; }
+    try {
+      // Try bulk endpoint first, fall back to individual calls
+      try {
+        await api("/api/v1/tables/bulk-sync-update", {
+          method: "POST",
+          body: JSON.stringify({ table_ids: targets.map((x) => x.tid), sync_enabled: enable }),
+        });
+      } catch {
+        await Promise.all(targets.map(({ t }) => handleToggleTableSync(t, enable)));
+      }
+      push(`Sync ${enable ? "enabled" : "disabled"} for ${targets.length} table(s)`);
+      setSelectedTables(new Set());
+      fetchTablesData();
+    } catch (e) { push(e?.message || "Bulk update failed", "error"); }
+    setBulkSyncing(false);
+  };
+
   const fetchParameters = useCallback(async () => {
     if (!api || !id) return;
     setParamsLoading(true);
@@ -608,6 +653,14 @@ export default function DataSourceDetail() {
   useEffect(() => {
     if (activityPage > activityTotalPages) setActivityPage(activityTotalPages);
   }, [activityPage, activityTotalPages]);
+
+  // Close the ⋮ action dropdown when clicking outside
+  useEffect(() => {
+    if (!openActionMenu) return;
+    const close = () => setOpenActionMenu(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [openActionMenu]);
 
   useEffect(() => {
     if (activeTab !== "tables" || !api) return;
@@ -990,6 +1043,30 @@ export default function DataSourceDetail() {
                     </button>
                   </div>
 
+                  {/* Bulk selection bar — visible only when rows are checked */}
+                  {selectedTables.size > 0 && (
+                    <div className="flex items-center justify-between mb-3 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
+                      <span className="text-xs font-semibold text-[var(--nav-active)] flex items-center gap-1.5">
+                        <I d={ico.check} size={13} color="var(--nav-active)" />
+                        {selectedTables.size} table{selectedTables.size !== 1 ? "s" : ""} selected
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <button className={btnP} style={{ fontSize: "0.7rem" }} disabled={bulkSyncing}
+                          onClick={() => handleBulkSync(true)}>
+                          {bulkSyncing ? <Spin /> : <I d={ico.sync} size={12} color="#fff" />} Enable Sync
+                        </button>
+                        <button className={btnP} style={{ fontSize: "0.7rem", background: "var(--text-muted)" }} disabled={bulkSyncing}
+                          onClick={() => handleBulkSync(false)}>
+                          {bulkSyncing ? <Spin /> : <I d={ico.x} size={12} color="#fff" />} Disable Sync
+                        </button>
+                        <button className={btnS} style={{ fontSize: "0.7rem" }}
+                          onClick={() => setSelectedTables(new Set())}>
+                          <I d={ico.x} size={12} /> Clear
+                        </button>
+                      </span>
+                    </div>
+                  )}
+
                   {tablesLoading ? (
                     <div className="flex items-center justify-center gap-3 py-12">
                       <Spin /> <span className="text-sm text-[var(--text-muted)]">Loading tables...</span>
@@ -1010,14 +1087,20 @@ export default function DataSourceDetail() {
                         <thead>
                           <tr className="text-[0.62rem] font-bold tracking-[0.08em] uppercase text-[var(--text-muted)]"
                             style={{ background: "rgba(99,102,241,.04)", borderBottom: "1px solid var(--border)" }}>
-                            <th className="text-left px-4 py-2.5 w-8"></th>
-                            <th className="text-left px-4 py-2.5">Table Name</th>
-                            <th className="text-left px-4 py-2.5">Schema</th>
-                            <th className="text-left px-4 py-2.5">Columns</th>
-                            <th className="text-left px-4 py-2.5">Rows</th>
-                            <th className="text-left px-4 py-2.5">Sync</th>
+                            <th className="w-10 px-3 py-2.5 text-center">
+                              {/* Indeterminate / checked header checkbox */}
+                              <input type="checkbox" ref={(el) => {
+                                if (el) el.indeterminate = selectedTables.size > 0 && selectedTables.size < filteredTables.length;
+                              }}
+                                checked={filteredTables.length > 0 && selectedTables.size === filteredTables.length}
+                                onChange={toggleSelectAll}
+                                className="cursor-pointer w-3.5 h-3.5 accent-[var(--nav-active)]" />
+                            </th>
+                            <th className="text-left px-4 py-2.5">Table</th>
+                            <th className="text-left px-4 py-2.5">Status</th>
                             <th className="text-left px-4 py-2.5">Last Sync</th>
                             <th className="text-left px-4 py-2.5">Created</th>
+                            <th className="text-left px-4 py-2.5">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1029,80 +1112,93 @@ export default function DataSourceDetail() {
                             const cols = columnsCache[key] || [];
                             const fallback = fallbackCounts[key] || {};
                             const syncEnabled = t.syncInfo?.sync_enabled ?? t.sync_enabled;
-                            const syncLabel = t.syncInfo?.sync_status || (syncEnabled ? "Sync Enabled" : "Sync Disabled");
+                            const syncLabel = syncEnabled ? "SYNC ENABLED" : "SYNC DISABLED";
                             const lastSyncedAt = t.last_synced_at ?? t.syncInfo?.last_synced_at ?? fallback.last_synced_at ?? null;
                             const createdAt = t.created_at ?? t.syncInfo?.created_at ?? null;
+                            const isSelected = selectedTables.has(key);
+                            const menuOpen = openActionMenu === key;
                             return [
                               <tr key={`${key}-row`}
                                 className="border-b border-[var(--border)] hover:bg-[var(--bg-input)] transition-colors">
-                                <td className="px-2 py-2.5 text-center">
-                                  <button
-                                    onClick={() => handleExpandTable(t)}
-                                    className="w-6 h-6 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--nav-active)] transition-colors cursor-pointer"
-                                    style={{ background: "transparent", border: "none" }}>
-                                    <I d={ico.chevDown} size={12}
-                                      className={`transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`} />
-                                  </button>
+                                {/* Checkbox */}
+                                <td className="w-10 px-3 py-2.5 text-center">
+                                  <input type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleTableSelect(key)}
+                                    className="cursor-pointer w-3.5 h-3.5 accent-[var(--nav-active)]" />
                                 </td>
+                                {/* Table name: power icon + schema.table */}
                                 <td className="px-4 py-2.5">
-                                  <div className="flex items-center gap-2 justify-between">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <I d={ico.table} size={13} color="#818cf8" />
-                                      <button
-                                        className="text-sm font-semibold cursor-pointer hover:underline truncate text-left"
-                                        style={{ background: "transparent", border: "none", padding: 0, color: "inherit" }}
-                                        onClick={() => navigate(`/datasources/${id}/tables/${encodeURIComponent(schema)}/${encodeURIComponent(tableName)}`)}>
-                                        {tableName}
-                                      </button>
-                                    </div>
+                                  <div className="flex items-center gap-2">
+                                    <I d={ico.sync} size={13}
+                                      color={syncEnabled === true ? "#4ade80" : syncEnabled === false ? "var(--text-muted)" : "var(--text-muted)"} />
                                     <button
-                                      className="text-[0.65rem] font-semibold px-2 py-1 rounded-md border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]"
-                                      style={{ background: "var(--bg-input)" }}
+                                      className="text-sm font-semibold cursor-pointer hover:underline truncate text-left"
+                                      style={{ background: "transparent", border: "none", padding: 0, color: "inherit" }}
                                       onClick={() => navigate(`/datasources/${id}/tables/${encodeURIComponent(schema)}/${encodeURIComponent(tableName)}`)}>
-                                      Details
+                                      {schema}.{tableName}
                                     </button>
                                   </div>
                                 </td>
+                                {/* Status badge */}
                                 <td className="px-4 py-2.5">
-                                  <span className="text-xs text-[var(--text-muted)]">{schema}</span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <span className="text-xs text-[var(--text-sub)]">{t.column_count ?? t.syncInfo?.column_count ?? fallback.column_count ?? "—"}</span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <span className="text-xs text-[var(--text-sub)]" title={fallback.row_count_unavailable ? "Row count API not available for this table" : undefined}>
-                                    {(t.row_count ?? t.syncInfo?.row_count ?? fallback.row_count) != null
-                                      ? Number(t.row_count ?? t.syncInfo?.row_count ?? fallback.row_count).toLocaleString()
-                                      : (fallback.row_count_unavailable ? "N/A" : "—")}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  {(syncEnabled !== undefined && (t.syncInfo?.id ?? t.id) != null) ? (
-                                    <button
-                                      className="text-[0.62rem] font-bold px-2 py-0.5 rounded-full whitespace-nowrap capitalize cursor-pointer border transition-colors"
+                                  {syncEnabled !== undefined ? (
+                                    <span className="text-[0.62rem] font-bold px-2 py-0.5 rounded-full whitespace-nowrap border"
                                       style={{
-                                        background: syncEnabled ? "rgba(74,222,128,.12)" : "rgba(148,163,184,.12)",
-                                        color: syncEnabled ? "#4ade80" : "#94a3b8",
-                                        borderColor: syncEnabled ? "rgba(74,222,128,.25)" : "rgba(148,163,184,.25)",
-                                      }}
-                                      onClick={(e) => { e.stopPropagation(); handleToggleTableSync(t, !syncEnabled); }}
-                                      title={`Click to ${syncEnabled ? "disable" : "enable"} sync`}>
+                                        background: syncEnabled ? "rgba(74,222,128,.12)" : "rgba(148,163,184,.10)",
+                                        color: syncEnabled ? "#4ade80" : "var(--text-muted)",
+                                        borderColor: syncEnabled ? "rgba(74,222,128,.25)" : "var(--border)",
+                                      }}>
                                       {syncLabel}
-                                    </button>
-                                  ) : (
-                                    <span className="text-xs text-[var(--text-muted)]">—</span>
-                                  )}
+                                    </span>
+                                  ) : <span className="text-xs text-[var(--text-muted)]">—</span>}
                                 </td>
+                                {/* Last Sync */}
                                 <td className="px-4 py-2.5">
                                   <span className="text-xs text-[var(--text-sub)]">{formatRelativeTime(lastSyncedAt)}</span>
                                 </td>
+                                {/* Created */}
                                 <td className="px-4 py-2.5">
                                   <span className="text-xs text-[var(--text-sub)]">{formatRelativeTime(createdAt)}</span>
+                                </td>
+                                {/* Actions ⋮ dropdown */}
+                                <td className="px-4 py-2.5">
+                                  <div className="relative inline-block">
+                                    <button
+                                      className="w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-input)] transition-colors cursor-pointer"
+                                      style={{ background: menuOpen ? "var(--bg-input)" : "transparent", border: menuOpen ? "1px solid var(--border)" : "1px solid transparent" }}
+                                      onClick={(e) => { e.stopPropagation(); setOpenActionMenu(menuOpen ? null : key); }}>
+                                      <span style={{ fontSize: 18, lineHeight: 1, letterSpacing: 0 }}>⋮</span>
+                                    </button>
+                                    {menuOpen && (
+                                      <div className="absolute right-0 top-full mt-1 z-30 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-lg overflow-hidden"
+                                        style={{ animation: "fadeUp .12s ease both" }}
+                                        onClick={(e) => e.stopPropagation()}>
+                                        <button className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-xs text-[var(--text-sub)] hover:bg-[var(--bg-input)] cursor-pointer transition-colors"
+                                          style={{ background: "none", border: "none" }}
+                                          onClick={() => { setOpenActionMenu(null); navigate(`/datasources/${id}/tables/${encodeURIComponent(schema)}/${encodeURIComponent(tableName)}`); }}>
+                                          <I d={ico.info} size={13} /> View Details
+                                        </button>
+                                        <button className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-xs text-[var(--text-sub)] hover:bg-[var(--bg-input)] cursor-pointer transition-colors"
+                                          style={{ background: "none", border: "none" }}
+                                          onClick={async () => { setOpenActionMenu(null); push("Syncing table..."); await api(`/api/v1/tables/${t.syncInfo?.id ?? t.id}/sync`, { method: "POST" }).catch(() => {}); push("Sync triggered"); }}>
+                                          <I d={ico.sync} size={13} /> Sync Now
+                                        </button>
+                                        <div style={{ borderTop: "1px solid var(--border)" }} />
+                                        <button className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-xs hover:bg-[var(--bg-input)] cursor-pointer transition-colors"
+                                          style={{ background: "none", border: "none", color: syncEnabled ? "var(--text-muted)" : "#4ade80" }}
+                                          onClick={() => { setOpenActionMenu(null); handleToggleTableSync(t, !syncEnabled); }}>
+                                          <I d={ico.sync} size={13} color={syncEnabled ? "var(--text-muted)" : "#4ade80"} />
+                                          {syncEnabled ? "Disable Sync" : "Enable Sync"}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>,
                               isExpanded ? (
                                 <tr key={`${key}-cols`} className="border-b border-[var(--border)]">
-                                  <td colSpan={8} className="px-6 py-3"
+                                  <td colSpan={6} className="px-6 py-3"
                                     style={{ background: "rgba(99,102,241,.03)" }}>
                                     {columnsLoadingKey === key && cols.length === 0 ? (
                                       <div className="flex items-center gap-2">
