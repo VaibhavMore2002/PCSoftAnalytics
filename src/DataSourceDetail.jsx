@@ -267,6 +267,10 @@ export default function DataSourceDetail() {
   const [syncLogs, setSyncLogs] = useState([]);
   const [activityLoading, setActivityLoading] = useState(false);
 
+  /* Settings tab state */
+  const [settingsForm, setSettingsForm] = useState({ sync_enabled: false, sync_method: "full", sync_frequency: "manual", sync_cron_expression: "" });
+  const [settingsSaving, setSettingsSaving] = useState(false);
+
   /* Parameters tab state */
   const [parameters, setParameters] = useState([]);
   const [paramsLoading, setParamsLoading] = useState(false);
@@ -506,6 +510,24 @@ export default function DataSourceDetail() {
     } catch (e) { push(e.message || "Failed to update sync", "error"); }
   };
 
+  const handleSaveSettings = async () => {
+    setSettingsSaving(true);
+    try {
+      const updated = await api(`/api/v1/data-sources/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          sync_enabled: settingsForm.sync_enabled,
+          sync_method: settingsForm.sync_method,
+          sync_frequency: settingsForm.sync_frequency,
+          sync_cron_expression: settingsForm.sync_cron_expression || undefined,
+        }),
+      });
+      setSource((prev) => ({ ...prev, ...updated }));
+      push("Settings saved successfully");
+    } catch (e) { push(e?.message || "Failed to save settings", "error"); }
+    setSettingsSaving(false);
+  };
+
   /* ── Multi-select helpers ── */
   const toggleTableSelect = (key) => setSelectedTables((prev) => {
     const next = new Set(prev);
@@ -641,6 +663,18 @@ export default function DataSourceDetail() {
   useEffect(() => {
     if (activeTab === "parameters" && parameters.length === 0 && !paramsLoading) fetchParameters();
   }, [activeTab]);
+
+  // Initialize settings form when switching to settings tab
+  useEffect(() => {
+    if (activeTab === "settings" && source) {
+      setSettingsForm({
+        sync_enabled: source.sync_enabled ?? false,
+        sync_method: source.sync_method || "full",
+        sync_frequency: source.sync_frequency || "manual",
+        sync_cron_expression: source.sync_cron_expression || "",
+      });
+    }
+  }, [activeTab, source]);
 
   useEffect(() => {
     if (tablesPage > tablesTotalPages) setTablesPage(tablesTotalPages);
@@ -1181,7 +1215,7 @@ export default function DataSourceDetail() {
                                         </button>
                                         <button className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-xs text-[var(--text-sub)] hover:bg-[var(--bg-input)] cursor-pointer transition-colors"
                                           style={{ background: "none", border: "none" }}
-                                          onClick={async () => { setOpenActionMenu(null); push("Syncing table..."); await api(`/api/v1/tables/${t.syncInfo?.id ?? t.id}/sync`, { method: "POST" }).catch(() => {}); push("Sync triggered"); }}>
+                                          onClick={async () => { setOpenActionMenu(null); push("Syncing table..."); await api(`/api/v1/tables/${t.syncInfo?.id ?? t.id}/sync`, { method: "POST" }).catch(() => { }); push("Sync triggered"); }}>
                                           <I d={ico.sync} size={13} /> Sync Now
                                         </button>
                                         <div style={{ borderTop: "1px solid var(--border)" }} />
@@ -1374,13 +1408,93 @@ export default function DataSourceDetail() {
               {/* ── Settings Tab ── */}
               {activeTab === "settings" && (
                 <div className="w-full max-w-none space-y-4">
-                  {/* Connection Settings */}
+
+                  {/* Sync Configuration — editable inline form */}
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
+                    <div className="px-5 py-4 border-b border-[var(--border)]">
+                      <h3 className="text-sm font-bold text-[var(--text)]">Sync Configuration</h3>
+                    </div>
+                    <div className="px-5 py-4 space-y-5">
+
+                      {/* Enable Automatic Sync toggle */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-[var(--text)]">Enable Automatic Sync</p>
+                        </div>
+                        <button className="w-10 h-5 rounded-full relative cursor-pointer transition-colors flex-shrink-0"
+                          style={{ background: settingsForm.sync_enabled ? "var(--nav-active)" : "var(--track-color)", border: "none" }}
+                          onClick={() => setSettingsForm((f) => ({ ...f, sync_enabled: !f.sync_enabled }))}>
+                          <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                            style={{ left: settingsForm.sync_enabled ? 22 : 2 }} />
+                        </button>
+                      </div>
+
+                      <hr style={{ borderColor: "var(--border)" }} />
+
+                      {/* Sync Method */}
+                      <div>
+                        <label className="text-xs font-semibold text-[var(--text)] block mb-1.5">Sync Method</label>
+                        <select
+                          className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--nav-active)] cursor-pointer"
+                          style={{ colorScheme: "dark light" }}
+                          value={settingsForm.sync_method}
+                          onChange={(e) => setSettingsForm((f) => ({ ...f, sync_method: e.target.value }))}>
+                          <option value="full" style={{ background: "var(--bg-card)", color: "var(--text)" }}>Full Sync</option>
+                          <option value="incremental" style={{ background: "var(--bg-card)", color: "var(--text)" }}>Incremental</option>
+                          <option value="schema_only" style={{ background: "var(--bg-card)", color: "var(--text)" }}>Schema Only</option>
+                        </select>
+                        <p className="text-[0.65rem] text-[var(--nav-active)] mt-1">
+                          {settingsForm.sync_method === "full" ? "Full sync reloads all data, incremental only syncs new/modified data" :
+                            settingsForm.sync_method === "incremental" ? "Incremental sync only processes new or modified records" :
+                              "Schema only syncs table and column structure without data"}
+                        </p>
+                      </div>
+
+                      {/* Sync Frequency */}
+                      <div>
+                        <label className="text-xs font-semibold text-[var(--text)] block mb-1.5">Sync Frequency</label>
+                        <select
+                          className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--nav-active)] cursor-pointer"
+                          style={{ colorScheme: "dark light" }}
+                          value={settingsForm.sync_frequency}
+                          onChange={(e) => setSettingsForm((f) => ({ ...f, sync_frequency: e.target.value }))}>
+                          <option value="manual" style={{ background: "var(--bg-card)", color: "var(--text)" }}>Manual</option>
+                          <option value="hourly" style={{ background: "var(--bg-card)", color: "var(--text)" }}>Hourly</option>
+                          <option value="daily" style={{ background: "var(--bg-card)", color: "var(--text)" }}>Daily</option>
+                          <option value="weekly" style={{ background: "var(--bg-card)", color: "var(--text)" }}>Weekly</option>
+                          <option value="custom" style={{ background: "var(--bg-card)", color: "var(--text)" }}>Custom (Cron)</option>
+                        </select>
+                        <p className="text-[0.65rem] text-[var(--text-muted)] mt-1">How often to automatically sync data from the source</p>
+                      </div>
+
+                      {/* Cron Expression — shown only when frequency = custom */}
+                      {settingsForm.sync_frequency === "custom" && (
+                        <div>
+                          <label className="text-xs font-semibold text-[var(--text)] block mb-1.5">Cron Expression</label>
+                          <input
+                            className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--nav-active)] caret-[var(--nav-active)] transition-[border-color] font-mono"
+                            placeholder="0 0 * * *"
+                            value={settingsForm.sync_cron_expression}
+                            onChange={(e) => setSettingsForm((f) => ({ ...f, sync_cron_expression: e.target.value }))} />
+                          <p className="text-[0.65rem] text-[var(--text-muted)] mt-1">Custom cron expression for advanced scheduling (e.g., "0 0 * * *" for daily at midnight)</p>
+                        </div>
+                      )}
+
+                    </div>
+                    {/* Save button */}
+                    <div className="px-5 py-3 border-t border-[var(--border)] flex justify-end">
+                      <button className={btnP} style={{ background: "var(--nav-active-bg)", opacity: settingsSaving ? 0.7 : 1 }}
+                        disabled={settingsSaving} onClick={handleSaveSettings}>
+                        {settingsSaving ? <Spin /> : <I d={ico.db} size={14} color="#fff" />} Save Settings
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Connection Settings — read-only display */}
                   <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
                     <div className="px-5 py-3 border-b border-[var(--border)]"
                       style={{ background: "rgba(99,102,241,.04)" }}>
-                      <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                        Connection Settings
-                      </h3>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">Connection Settings</h3>
                     </div>
                     <div className="px-5">
                       <DetailRow label="Host" value={source.host} />
@@ -1394,38 +1508,7 @@ export default function DataSourceDetail() {
                     </div>
                   </div>
 
-                  {/* Sync Configuration */}
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-                    <div className="px-5 py-3 border-b border-[var(--border)]"
-                      style={{ background: "rgba(99,102,241,.04)" }}>
-                      <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                        Sync Configuration
-                      </h3>
-                    </div>
-                    <div className="px-5">
-                      <DetailRow label="Sync Enabled"
-                        value={
-                          <Badge
-                            label={source.sync_enabled ? "Enabled" : "Disabled"}
-                            bg={source.sync_enabled ? "rgba(74,222,128,.12)" : "rgba(148,163,184,.12)"}
-                            color={source.sync_enabled ? "#4ade80" : "#94a3b8"}
-                            border={source.sync_enabled ? "rgba(74,222,128,.25)" : "rgba(148,163,184,.25)"}
-                          />
-                        }
-                      />
-                      <DetailRow label="Sync Method" value={source.sync_method} />
-                      <DetailRow label="Sync Frequency" value={source.sync_frequency} />
-                      <DetailRow label="Frequency Value" value={source.sync_frequency_value ?? "—"} />
-                      <DetailRow label="Schedule Time" value={source.sync_schedule_time || "—"} />
-                      <DetailRow label="Cron Expression" value={source.sync_cron_expression || "—"} />
-                    </div>
-                  </div>
-
                   <div className="flex gap-2">
-                    <button className={btnP} style={{ background: "var(--nav-active-bg)" }}
-                      onClick={() => navigate(`/datasources/${id}/edit`)}>
-                      <I d={ico.edit} size={14} color="#fff" sw={2.5} /> Edit Settings
-                    </button>
                     <button className={btnS} onClick={handleTest} disabled={testing}>
                       {testing ? <Spin /> : <I d={ico.check} size={14} />} Test Connection
                     </button>
@@ -1433,6 +1516,7 @@ export default function DataSourceDetail() {
                       {syncing ? <Spin /> : <I d={ico.sync} size={14} />} Sync Now
                     </button>
                   </div>
+
                 </div>
               )}
 

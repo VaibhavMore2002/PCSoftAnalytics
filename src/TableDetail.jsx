@@ -25,6 +25,11 @@ const ico = {
   x: "M18 6L6 18M6 6l12 12",
   search: "M21 21l-4.35-4.35M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z",
   save: "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8",
+  edit: "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
+  trash: "M3 6h18M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2",
+  plus: "M12 5v14M5 12h14",
+  play: "M5 3l14 9-14 9V3z",
+  power: "M18.36 6.64a9 9 0 11-12.73 0M12 2v10",
 };
 
 const Spin = () => (
@@ -128,6 +133,7 @@ export default function TableDetail() {
   const [columnsPage, setColumnsPage] = useState(1);
 
   const [selectedColumnId, setSelectedColumnId] = useState(null);
+  const [selectedColumns, setSelectedColumns] = useState(new Set()); // bulk selection state
   const [columnForm, setColumnForm] = useState({
     display_name: "",
     description: "",
@@ -141,6 +147,25 @@ export default function TableDetail() {
   const [relationshipsLoading, setRelationshipsLoading] = useState(false);
   const [relationshipsPage, setRelationshipsPage] = useState(1);
   const [relationshipsHasMore, setRelationshipsHasMore] = useState(false);
+
+  /* Relationship creation modal */
+  const [showRelModal, setShowRelModal] = useState(false);
+  const [relSubmitting, setRelSubmitting] = useState(false);
+  const [relTableSearch, setRelTableSearch] = useState("");
+  const [relTableOptions, setRelTableOptions] = useState([]);
+  const [relTableSearching, setRelTableSearching] = useState(false);
+  const [relForm, setRelForm] = useState({
+    name: "",
+    description: "",
+    relationship_type: "one_to_many",
+    join_type: "inner",
+    target_table_id: "",
+    target_table_label: "",
+    column_mappings: [{ source_column: "", target_column: "" }],
+  });
+
+  /* Edit / Delete table state */
+  const [deleting, setDeleting] = useState(false);
 
   const [previewRows, setPreviewRows] = useState([]);
   const [previewColumns, setPreviewColumns] = useState([]);
@@ -410,6 +435,103 @@ export default function TableDetail() {
     setSavingColumn(false);
   };
 
+  /* Delete this table's sync-tracking record */
+  const handleDeleteTable = async () => {
+    if (!tableMeta?.id) return;
+    if (!window.confirm(`Delete table "${decodedTableName}" from sync tracking? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await api(`/api/v1/tables/${tableMeta.id}`, { method: "DELETE" });
+      push("Table deleted");
+      navigate(`/datasources/${sourceId}`);
+    } catch (e) { push(e?.message || "Failed to delete table", "error"); }
+    setDeleting(false);
+  };
+
+  /* Search available tables for the relationship target dropdown */
+  const searchRelTables = useCallback(async (q) => {
+    if (!api) return;
+    setRelTableSearching(true);
+    try {
+      const data = await api("/api/v1/tables/", {}, {
+        ...(numericSourceId != null ? { data_source_id: numericSourceId } : {}),
+        search: q || undefined,
+        skip: 0,
+        limit: 30,
+      });
+      const list = asArray(data, ["tables", "items", "data", "results"]);
+      setRelTableOptions(list.filter((t) => t.id !== tableMeta?.id));
+    } catch { setRelTableOptions([]); }
+    setRelTableSearching(false);
+  }, [api, numericSourceId, tableMeta?.id]);
+
+  /* Submit the Create Relationship form */
+  const handleCreateRelationship = async () => {
+    if (!relForm.name.trim()) { push("Relationship name is required", "error"); return; }
+    if (!relForm.target_table_id) { push("Target table is required", "error"); return; }
+    const validMappings = relForm.column_mappings.filter((m) => m.source_column && m.target_column);
+    if (validMappings.length === 0) { push("At least one column mapping is required", "error"); return; }
+    setRelSubmitting(true);
+    try {
+      await api("/api/v1/relationships/", {
+        method: "POST",
+        body: JSON.stringify({
+          name: relForm.name.trim(),
+          description: relForm.description || null,
+          relationship_type: relForm.relationship_type,
+          join_type: relForm.join_type,
+          source_table_id: tableMeta.id,
+          target_table_id: Number(relForm.target_table_id),
+          column_mappings: validMappings.map((m) => ({ source_column: m.source_column, target_column: m.target_column })),
+        }),
+      });
+      push("Relationship created");
+      setShowRelModal(false);
+      setRelForm({ name: "", description: "", relationship_type: "one_to_many", join_type: "inner", target_table_id: "", target_table_label: "", column_mappings: [{ source_column: "", target_column: "" }] });
+      fetchRelationships();
+    } catch (e) { push(e?.message || "Failed to create relationship", "error"); }
+    setRelSubmitting(false);
+  };
+
+  /* Column Selection Handlers */
+  const toggleColumnSelection = (id) => {
+    const nextSet = new Set(selectedColumns);
+    if (nextSet.has(id)) nextSet.delete(id);
+    else nextSet.add(id);
+    setSelectedColumns(nextSet);
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedColumns.size === columns.length && columns.length > 0) {
+      setSelectedColumns(new Set());
+    } else {
+      setSelectedColumns(new Set(columns.map(c => c.id)));
+    }
+  };
+
+  const handleBulkSync = async (enable) => {
+    if (!api || selectedColumns.size === 0) return;
+    const items = Array.from(selectedColumns);
+    push(`Updating sync status for ${items.length} column(s)...`, "success");
+    setSelectedColumns(new Set()); 
+    try {
+      await Promise.all(items.map(id =>
+        api(`/api/v1/columns/${id}`, {
+          method: "PUT",
+          body: JSON.stringify({ sync_enabled: enable }),
+        })
+      ));
+      setColumns((prev) => prev.map((c) => items.includes(c.id) ? { ...c, sync_enabled: enable } : c));
+      if (items.includes(selectedColumnId)) {
+        setColumnForm((p) => ({ ...p, sync_enabled: enable }));
+      }
+      push(`Successfully updated sync status!`, "success");
+    } catch (e) {
+      push(e?.message || "Failed to bulk update sync status", "error");
+      fetchColumns();
+    }
+  };
+
   const logo = (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -437,9 +559,19 @@ export default function TableDetail() {
               </p>
             </div>
           </div>
-          <button className={btnS} onClick={fetchMeta}>
-            <I d={ico.refresh} size={14} /> Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button className={btnS} onClick={fetchMeta}>
+              <I d={ico.refresh} size={14} /> Refresh
+            </button>
+            {tableMeta?.id && (
+              <button className={btnS}
+                style={{ color: "#f87171", borderColor: "rgba(248,113,113,.3)" }}
+                disabled={deleting}
+                onClick={handleDeleteTable}>
+                {deleting ? <Spin /> : <I d={ico.trash} size={14} color="#f87171" />} Delete
+              </button>
+            )}
+          </div>
         </header>
 
         <div className="flex items-center gap-0 px-6 border-b border-[var(--border)] bg-[var(--bg-card)] shrink-0">
@@ -519,8 +651,26 @@ export default function TableDetail() {
                       <button className={btnS} onClick={fetchColumns}><I d={ico.refresh} size={14} /></button>
                     </div>
 
-                    <div className="px-4 py-2 text-xs text-[var(--text-muted)] border-b border-[var(--border)]">
-                      {selectedColumn ? "1 column selected" : "0 column selected"}
+                    <div className="px-4 py-2.5 border-b border-[var(--border)] min-h-[46px] flex items-center justify-between"
+                      style={{ background: selectedColumns.size > 0 ? "rgba(99,102,241,.03)" : "transparent" }}>
+                      <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: selectedColumns.size > 0 ? "var(--nav-active)" : "var(--text-muted)" }}>
+                        {selectedColumns.size > 0 && <I d={ico.check} size={14} color="var(--nav-active)" />}
+                        {selectedColumns.size > 0 ? `${selectedColumns.size} column${selectedColumns.size > 1 ? "s" : ""} selected` : "No columns selected"}
+                      </div>
+                      {selectedColumns.size > 0 && (
+                        <div className="flex items-center gap-2">
+                          <button className={btnP} style={{ background: "var(--nav-active-bg)" }} onClick={() => handleBulkSync(true)}>
+                            <I d={ico.play} size={13} color="#fff" /> Enable Sync
+                          </button>
+                          <button className={btnP} style={{ background: "#3b82f6" }} onClick={() => handleBulkSync(false)}>
+                            <I d={ico.power} size={13} color="#fff" /> Disable Sync
+                          </button>
+                          <button className="px-3 py-1.5 text-xs text-[var(--text-sub)] hover:text-[var(--text)] transition-colors flex items-center gap-1 cursor-pointer"
+                            style={{ background: "none", border: "none" }} onClick={() => setSelectedColumns(new Set())}>
+                            <I d={ico.x} size={13} /> Clear
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {columnsLoading ? (
@@ -531,6 +681,12 @@ export default function TableDetail() {
                           <thead>
                             <tr className="text-[0.62rem] font-bold tracking-[0.08em] uppercase text-[var(--text-muted)]"
                               style={{ background: "rgba(99,102,241,.04)", borderBottom: "1px solid var(--border)" }}>
+                              <th className="text-left px-3 py-2 w-10">
+                                <input type="checkbox"
+                                  className="cursor-pointer"
+                                  checked={columns.length > 0 && selectedColumns.size === columns.length}
+                                  onChange={toggleAllSelection} />
+                              </th>
                               <th className="text-left px-3 py-2">Name</th>
                               <th className="text-left px-3 py-2">Type</th>
                               <th className="text-left px-3 py-2">Nullable</th>
@@ -539,27 +695,38 @@ export default function TableDetail() {
                             </tr>
                           </thead>
                           <tbody>
-                            {columns.map((col) => (
-                              <tr key={col.id}
-                                onClick={() => setSelectedColumnId(col.id)}
-                                className="border-b border-[var(--border)] cursor-pointer hover:bg-[var(--bg-input)]"
-                                style={{ background: selectedColumnId === col.id ? "rgba(99,102,241,.07)" : "transparent" }}>
-                                <td className="px-3 py-2 text-sm font-semibold">{col.column_name}</td>
-                                <td className="px-3 py-2 text-xs text-[var(--text-sub)]">{col.data_type || "-"}</td>
-                                <td className="px-3 py-2 text-xs text-[var(--text-sub)]">{col.is_nullable ? "NULL" : "NOT NULL"}</td>
-                                <td className="px-3 py-2 text-xs text-[var(--text-sub)]">{col.description || "-"}</td>
-                                <td className="px-3 py-2 text-xs">
-                                  <span className="text-[0.62rem] font-bold px-2 py-0.5 rounded-full"
-                                    style={{
-                                      background: col.sync_enabled ? "rgba(74,222,128,.12)" : "rgba(148,163,184,.12)",
-                                      color: col.sync_enabled ? "#4ade80" : "#94a3b8",
-                                      border: `1px solid ${col.sync_enabled ? "rgba(74,222,128,.25)" : "rgba(148,163,184,.25)"}`,
-                                    }}>
-                                    {col.sync_enabled ? "Enabled" : "Disabled"}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
+                            {columns.map((col) => {
+                              const isChecked = selectedColumns.has(col.id);
+                              return (
+                                <tr key={col.id}
+                                  onClick={() => setSelectedColumnId(col.id)}
+                                  className="border-b border-[var(--border)] cursor-pointer hover:bg-[var(--bg-input)]"
+                                  style={{ background: isChecked ? "rgba(99,102,241,.05)" : (selectedColumnId === col.id ? "rgba(99,102,241,.08)" : "transparent") }}>
+                                  <td className="px-3 py-2 w-10" onClick={(e) => e.stopPropagation()}>
+                                    <input type="checkbox"
+                                      className="cursor-pointer"
+                                      checked={isChecked}
+                                      onChange={() => toggleColumnSelection(col.id)} />
+                                  </td>
+                                  <td className="px-3 py-2 text-sm font-semibold">{col.column_name}</td>
+                                  <td className="px-3 py-2 text-xs text-[var(--text-sub)]">
+                                    <span className="px-1.5 py-0.5 rounded-md bg-[var(--bg-card)] border border-[var(--border)]">{col.data_type || "-"}</span>
+                                  </td>
+                                  <td className="px-3 py-2 text-[0.6rem] font-bold text-[var(--text-sub)]">{col.is_nullable ? "NULL" : "NOT NULL"}</td>
+                                  <td className="px-3 py-2 text-xs text-[var(--text-sub)]">{col.description || "-"}</td>
+                                  <td className="px-3 py-2 text-xs">
+                                    <span className="text-[0.62rem] font-bold px-2 py-0.5 rounded-full"
+                                      style={{
+                                        background: col.sync_enabled ? "rgba(74,222,128,.12)" : "rgba(148,163,184,.12)",
+                                        color: col.sync_enabled ? "#4ade80" : "#94a3b8",
+                                        border: `1px solid ${col.sync_enabled ? "rgba(74,222,128,.25)" : "rgba(148,163,184,.25)"}`,
+                                      }}>
+                                      {col.sync_enabled ? "Enabled" : "Disabled"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                         <div className="px-4 py-2 text-xs text-[var(--text-muted)] border-t border-[var(--border)]">
@@ -603,24 +770,33 @@ export default function TableDetail() {
                         <Field label="Description" value={columnForm.description}
                           onChange={(v) => setColumnForm((p) => ({ ...p, description: v }))} />
 
-                        <label className="flex items-center gap-2 text-xs text-[var(--text-sub)]">
-                          <input type="checkbox" checked={columnForm.sync_enabled}
-                            onChange={(e) => setColumnForm((p) => ({ ...p, sync_enabled: e.target.checked }))} />
-                          Sync Enabled
-                        </label>
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className={`relative w-8 h-4 rounded-full cursor-pointer transition-colors ${columnForm.sync_enabled ? 'bg-[var(--nav-active)]' : 'bg-[var(--border)]'}`}
+                            onClick={() => setColumnForm((p) => ({ ...p, sync_enabled: !p.sync_enabled }))}>
+                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform shadow-sm ${columnForm.sync_enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                          </div>
+                          <span className="text-sm font-semibold text-[var(--text)]">Sync Enabled</span>
+                        </div>
 
-                        <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-input)]">
-                          <p className="text-xs font-semibold mb-2">Performance Optimization (Keyset Pagination)</p>
-                          <label className="flex items-start gap-2 text-xs text-[var(--text-sub)] mb-2">
-                            <input type="checkbox" checked={columnForm.is_unique_id}
-                              onChange={(e) => setColumnForm((p) => ({ ...p, is_unique_id: e.target.checked }))} />
-                            <span>Use as Unique ID</span>
-                          </label>
-                          <label className="flex items-start gap-2 text-xs text-[var(--text-sub)]">
-                            <input type="checkbox" checked={columnForm.is_sequential}
-                              onChange={(e) => setColumnForm((p) => ({ ...p, is_sequential: e.target.checked }))} />
-                            <span>Values are Sequential</span>
-                          </label>
+                        <div className="p-4 rounded-lg border border-[var(--border)] bg-[var(--bg-input)]">
+                          <p className="text-xs font-semibold text-[var(--nav-active)] mb-3">Performance Optimization (Keyset Pagination)</p>
+                          <div className="space-y-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <div className={`relative w-8 h-4 rounded-full transition-colors ${columnForm.is_unique_id ? 'bg-[var(--nav-active)]' : 'bg-[var(--border)]'}`}
+                                onClick={() => setColumnForm((p) => ({ ...p, is_unique_id: !p.is_unique_id }))}>
+                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${columnForm.is_unique_id ? 'translate-x-4' : 'translate-x-0'}`} />
+                              </div>
+                              <span className="text-xs font-medium text-[var(--text)]">Use as Unique ID</span>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <div className={`relative w-8 h-4 rounded-full transition-colors ${columnForm.is_sequential ? 'bg-[var(--nav-active)]' : 'bg-[var(--border)]'}`}
+                                onClick={() => setColumnForm((p) => ({ ...p, is_sequential: !p.is_sequential }))}>
+                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${columnForm.is_sequential ? 'translate-x-4' : 'translate-x-0'}`} />
+                              </div>
+                              <span className="text-xs font-medium text-[var(--text)]">Values are Sequential</span>
+                            </label>
+                          </div>
                         </div>
 
                         <div className="text-[0.7rem] text-[var(--text-muted)] p-3 rounded-lg border border-dashed border-[var(--border)]">
@@ -644,7 +820,15 @@ export default function TableDetail() {
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
                   <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
                     <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">Relationships</h3>
-                    <button className={btnS} onClick={fetchRelationships}><I d={ico.refresh} size={14} /></button>
+                    <div className="flex items-center gap-2">
+                      <button className={btnS} onClick={fetchRelationships}><I d={ico.refresh} size={14} /></button>
+                      {tableMeta?.id && (
+                        <button className={btnP} style={{ background: "var(--nav-active-bg)" }}
+                          onClick={() => { setShowRelModal(true); searchRelTables(""); }}>
+                          <I d={ico.plus} size={13} color="#fff" /> Create Relationship
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {!tableMeta?.id ? (
                     <div className="py-10 text-center text-sm text-[var(--text-muted)]">Table metadata ID not found. Relationships are not available for this table yet.</div>
@@ -667,7 +851,7 @@ export default function TableDetail() {
                         </thead>
                         <tbody>
                           {relationships.map((r) => (
-                            <tr key={r.id} className="border-b border-[var(--border)]">
+                            <tr key={r.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-input)]">
                               <td className="px-3 py-2 text-xs text-[var(--text)]">{r.name || "-"}</td>
                               <td className="px-3 py-2 text-xs text-[var(--text-sub)]">{r.relationship_type || r.join_type || "-"}</td>
                               <td className="px-3 py-2 text-xs text-[var(--text-sub)]">{r.source_table_name || "-"}</td>
@@ -678,21 +862,13 @@ export default function TableDetail() {
                         </tbody>
                       </table>
                       <div className="px-4 py-2 border-t border-[var(--border)] flex items-center justify-end gap-2">
-                        <button
-                          className={btnS}
-                          disabled={relationshipsPage === 1}
+                        <button className={btnS} disabled={relationshipsPage === 1}
                           onClick={() => setRelationshipsPage((p) => Math.max(1, p - 1))}
-                          style={{ opacity: relationshipsPage === 1 ? 0.5 : 1, cursor: relationshipsPage === 1 ? "not-allowed" : "pointer" }}>
-                          Prev
-                        </button>
+                          style={{ opacity: relationshipsPage === 1 ? 0.5 : 1 }}>Prev</button>
                         <span className="text-xs text-[var(--text-sub)] px-1">Page {relationshipsPage}</span>
-                        <button
-                          className={btnS}
-                          disabled={!relationshipsHasMore}
+                        <button className={btnS} disabled={!relationshipsHasMore}
                           onClick={() => setRelationshipsPage((p) => p + 1)}
-                          style={{ opacity: relationshipsHasMore ? 1 : 0.5, cursor: relationshipsHasMore ? "pointer" : "not-allowed" }}>
-                          Next
-                        </button>
+                          style={{ opacity: relationshipsHasMore ? 1 : 0.5 }}>Next</button>
                       </div>
                     </>
                   )}
@@ -851,6 +1027,173 @@ export default function TableDetail() {
       </div>
 
       <Toast />
+
+      {/* ── Create Relationship Modal ── */}
+      {showRelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowRelModal(false); }}>
+          <div className="w-full max-w-2xl mx-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl overflow-hidden"
+            style={{ maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+              <div>
+                <h2 className="text-sm font-bold text-[var(--text)]">Create New Relationship</h2>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">Define a new relationship between this table and another table</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className={btnS} onClick={() => setShowRelModal(false)}>Cancel</button>
+                <button className={btnP} style={{ background: "var(--nav-active-bg)" }}
+                  disabled={relSubmitting} onClick={handleCreateRelationship}>
+                  {relSubmitting ? <Spin /> : <I d={ico.link} size={14} color="#fff" />} Create Relationship
+                </button>
+              </div>
+            </div>
+
+            {/* Modal body */}
+            <div className="overflow-auto px-6 py-5 space-y-5 flex-1">
+
+              {/* Relationship Name */}
+              <div>
+                <label className="text-xs font-semibold text-[var(--text)] block mb-1.5">
+                  Relationship Name <span style={{ color: "#f87171" }}>*</span>
+                </label>
+                <input
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--nav-active)]"
+                  placeholder="e.g., user_orders"
+                  value={relForm.name}
+                  onChange={(e) => setRelForm((f) => ({ ...f, name: e.target.value }))} />
+                <p className="text-[0.65rem] text-[var(--nav-active)] mt-1">A unique name to identify this relationship</p>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs font-semibold text-[var(--text)] block mb-1.5">Description</label>
+                <textarea
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--nav-active)] resize-y"
+                  placeholder="Describe this relationship"
+                  rows={3}
+                  value={relForm.description}
+                  onChange={(e) => setRelForm((f) => ({ ...f, description: e.target.value }))} />
+                <p className="text-[0.65rem] text-[var(--text-muted)] mt-1">Optional description of what this relationship represents</p>
+              </div>
+
+              {/* Relationship Type + Join Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[var(--text)] block mb-1.5">
+                    Relationship Type <span style={{ color: "#f87171" }}>*</span>
+                  </label>
+                  <select
+                    className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--nav-active)] cursor-pointer"
+                    style={{ colorScheme: "dark light" }}
+                    value={relForm.relationship_type}
+                    onChange={(e) => setRelForm((f) => ({ ...f, relationship_type: e.target.value }))}>
+                    <option value="one_to_many">ONE TO MANY</option>
+                    <option value="many_to_one">MANY TO ONE</option>
+                    <option value="one_to_one">ONE TO ONE</option>
+                    <option value="many_to_many">MANY TO MANY</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[var(--text)] block mb-1.5">
+                    Join Type <span style={{ color: "#f87171" }}>*</span>
+                  </label>
+                  <select
+                    className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--nav-active)] cursor-pointer"
+                    style={{ colorScheme: "dark light" }}
+                    value={relForm.join_type}
+                    onChange={(e) => setRelForm((f) => ({ ...f, join_type: e.target.value }))}>
+                    <option value="inner">INNER</option>
+                    <option value="left">LEFT</option>
+                    <option value="right">RIGHT</option>
+                    <option value="full">FULL</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Target Table searchable dropdown */}
+              <div>
+                <label className="text-xs font-semibold text-[var(--text)] block mb-1.5">
+                  Target Table <span style={{ color: "#f87171" }}>*</span>
+                </label>
+                <div className="relative">
+                  <I d={ico.search} size={14} color="var(--text-muted)" className="absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg pl-9 pr-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--nav-active)]"
+                    placeholder="Search for a table..."
+                    value={relTableSearch}
+                    onChange={(e) => { setRelTableSearch(e.target.value); searchRelTables(e.target.value); }}
+                  />
+                  {relTableSearching && <span className="absolute right-3 top-1/2 -translate-y-1/2"><Spin /></span>}
+                </div>
+                {relTableOptions.length > 0 && (
+                  <div className="mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-lg max-h-40 overflow-auto">
+                    {relTableOptions.map((t) => {
+                      const label = `${t.schema_name || "dbo"}.${t.table_name}`;
+                      return (
+                        <button key={t.id}
+                          className="flex items-center gap-2 w-full text-left px-4 py-2 text-xs text-[var(--text-sub)] hover:bg-[var(--bg-input)] cursor-pointer transition-colors"
+                          style={{ background: relForm.target_table_id === String(t.id) ? "var(--bg-input)" : "none", border: "none" }}
+                          onClick={() => { setRelForm((f) => ({ ...f, target_table_id: String(t.id), target_table_label: label })); setRelTableSearch(label); setRelTableOptions([]); }}>
+                          <I d={ico.table} size={12} color="#818cf8" />
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {relForm.target_table_label && (
+                  <p className="text-[0.65rem] text-[var(--nav-active)] mt-1">Selected: {relForm.target_table_label}</p>
+                )}
+              </div>
+
+              {/* Column Mappings */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-[var(--text)]">Column Mappings</label>
+                </div>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-input)] p-4">
+                  {relForm.column_mappings.length === 0 ? (
+                    <p className="text-xs text-[var(--text-muted)] text-center italic">No column mappings defined. Add at least one mapping to create the relationship.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {relForm.column_mappings.map((m, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <input
+                            className="flex-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text)] outline-none focus:border-[var(--nav-active)]"
+                            placeholder="Source column"
+                            value={m.source_column}
+                            onChange={(e) => setRelForm((f) => { const ms = [...f.column_mappings]; ms[i] = { ...ms[i], source_column: e.target.value }; return { ...f, column_mappings: ms }; })} />
+                          <span className="text-xs text-[var(--text-muted)] px-1">→</span>
+                          <input
+                            className="flex-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text)] outline-none focus:border-[var(--nav-active)]"
+                            placeholder="Target column"
+                            value={m.target_column}
+                            onChange={(e) => setRelForm((f) => { const ms = [...f.column_mappings]; ms[i] = { ...ms[i], target_column: e.target.value }; return { ...f, column_mappings: ms }; })} />
+                          <button className="text-[var(--text-muted)] hover:text-[#f87171] cursor-pointer"
+                            style={{ background: "none", border: "none" }}
+                            onClick={() => setRelForm((f) => ({ ...f, column_mappings: f.column_mappings.filter((_, j) => j !== i) }))}>
+                            <I d={ico.x} size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    className="mt-3 flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--nav-active)] cursor-pointer transition-colors"
+                    style={{ background: "none", border: "none" }}
+                    onClick={() => setRelForm((f) => ({ ...f, column_mappings: [...f.column_mappings, { source_column: "", target_column: "" }] }))}>
+                    <I d={ico.plus} size={13} /> {relForm.column_mappings.length === 0 ? "Add First Mapping" : "Add Column Mapping"}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
