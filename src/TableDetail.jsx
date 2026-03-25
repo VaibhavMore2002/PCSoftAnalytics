@@ -30,6 +30,9 @@ const ico = {
   plus: "M12 5v14M5 12h14",
   play: "M5 3l14 9-14 9V3z",
   power: "M18.36 6.64a9 9 0 11-12.73 0M12 2v10",
+  pencil: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
+  dotsVertical: "M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z",
+  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
 };
 
 const Spin = () => (
@@ -142,6 +145,12 @@ export default function TableDetail() {
     is_sequential: false,
   });
   const [savingColumn, setSavingColumn] = useState(false);
+
+  /* Edit Table State */
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [savingTable, setSavingTable] = useState(false);
+  const [syncingTable, setSyncingTable] = useState(false);
 
   const [relationships, setRelationships] = useState([]);
   const [relationshipsLoading, setRelationshipsLoading] = useState(false);
@@ -448,6 +457,63 @@ export default function TableDetail() {
     setDeleting(false);
   };
 
+  /* Open the Edit Table View */
+  const handleOpenEdit = () => {
+    setEditForm({
+      description: tableMeta?.description || "",
+      is_active: tableMeta?.is_active ?? true,
+      sync_enabled: tableMeta?.sync_enabled ?? true,
+      sync_method: syncConfig?.strategy || tableMeta?.sync_method || "Full (Slower, more resource-intensive)",
+      sync_frequency: syncConfig?.frequency || tableMeta?.sync_frequency || "Days",
+      sync_frequency_interval: 1, // Defaulting to 1 for simplicity if not provided
+      sync_schedule_time: syncConfig?.schedule_time || tableMeta?.sync_schedule_time || "00:00",
+      destination_path: tableMeta?.destination_path || `/data/sql19/${decodedSchema}/${decodedTableName}`,
+    });
+    setIsEditing(true);
+  };
+
+  /* Submit the Edit Table configuration */
+  const handleSaveTableEdit = async () => {
+    if (!api || !tableMeta?.id) return;
+    setSavingTable(true);
+    try {
+      await api(`/api/v1/tables/${tableMeta.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          description: editForm.description || null,
+          is_active: editForm.is_active,
+          sync_enabled: editForm.sync_enabled,
+          sync_method: editForm.sync_method,
+          sync_frequency: editForm.sync_frequency,
+          sync_schedule_time: editForm.sync_schedule_time,
+          destination_path: editForm.destination_path,
+        }),
+      });
+      // Optionally PUT sync config if separation of concerns requires it
+      push("Table updated successfully!");
+      setIsEditing(false);
+      fetchMeta();
+      fetchSyncConfig();
+    } catch (e) {
+      push(e?.message || "Failed to save table details", "error");
+    }
+    setSavingTable(false);
+  };
+
+  /* Run Sync for this Table */
+  const handleSyncNow = async () => {
+    if (!api || !tableMeta?.id) return;
+    setSyncingTable(true);
+    try {
+      await api(`/api/v1/tables/${tableMeta.id}/sync`, { method: "POST" });
+      push("Sync job started for this table", "success");
+      fetchMeta();
+    } catch (e) {
+      push(e?.message || "Failed to start sync", "error");
+    }
+    setSyncingTable(false);
+  };
+
   /* Search available tables for the relationship target dropdown */
   const searchRelTables = useCallback(async (q) => {
     if (!api) return;
@@ -542,97 +608,272 @@ export default function TableDetail() {
     <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
       <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} logo={logo} />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--bg-card)]">
-          <div className="flex items-center gap-3 min-w-0">
-            <button className={btnS} onClick={() => navigate(`/datasources/${sourceId}`)}>
-              <I d={ico.back} size={14} /> Back
-            </button>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: "rgba(99,102,241,.1)", border: "1px solid rgba(99,102,241,.2)" }}>
-              <I d={ico.table} size={16} color="#818cf8" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-sm font-bold truncate">{source?.name || `Data Source ${sourceId}`}</h1>
-              <p className="text-[0.65rem] text-[var(--text-muted)] truncate">
-                {decodedSchema}.{decodedTableName} · Table Information
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className={btnS} onClick={fetchMeta}>
-              <I d={ico.refresh} size={14} /> Refresh
-            </button>
-            {tableMeta?.id && (
-              <button className={btnS}
-                style={{ color: "#f87171", borderColor: "rgba(248,113,113,.3)" }}
-                disabled={deleting}
-                onClick={handleDeleteTable}>
-                {deleting ? <Spin /> : <I d={ico.trash} size={14} color="#f87171" />} Delete
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {isEditing ? (
+          <div className="flex-1 flex flex-col overflow-auto bg-[var(--bg-card)]">
+            <div className="px-8 py-6 max-w-5xl mx-auto w-full">
+              <button 
+                className="flex items-center gap-2 text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors mb-4"
+                onClick={() => setIsEditing(false)}>
+                <I d={ico.arrowLeft} size={14} /> Back to Table
               </button>
-            )}
-          </div>
-        </header>
+              <h1 className="text-xl font-bold mb-6 text-[var(--text)]">Edit Table: {decodedSchema}.{decodedTableName}</h1>
 
-        <div className="flex items-center gap-0 px-6 border-b border-[var(--border)] bg-[var(--bg-card)] shrink-0">
-          {TABS.map((tab) => (
-            <button key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="px-4 py-3 text-xs font-semibold cursor-pointer flex items-center gap-1.5 border-b-2 transition-all duration-150"
-              style={{
-                borderBottomColor: activeTab === tab.id ? "var(--nav-active)" : "transparent",
-                color: activeTab === tab.id ? "var(--nav-active)" : "var(--text-muted)",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${activeTab === tab.id ? "var(--nav-active)" : "transparent"}`,
-              }}>
-              <I d={ico[tab.icon]} size={13} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+              <div className="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--bg)]">
+                {/* Basic Information */}
+                <div className="p-6">
+                  <h3 className="text-sm font-bold text-[var(--text)] mb-4">Basic Information</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)] block mb-1">Table Name</label>
+                      <input className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-muted)] cursor-not-allowed outline-none" 
+                             value={`${decodedSchema}.${decodedTableName}`} readOnly disabled />
+                      <p className="text-[0.65rem] text-[var(--text-muted)] mt-1">Table name cannot be changed</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)] block mb-1">Table Type</label>
+                      <input className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none" 
+                             value="BASE TABLE" readOnly />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)] block mb-1">Description</label>
+                      <textarea className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none min-h-[80px]" 
+                                placeholder="Enter table description"
+                                value={editForm.description}
+                                onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
+                      <p className="text-[0.65rem] text-[var(--text-muted)] mt-1">Description of the table's purpose and contents</p>
+                    </div>
 
-        <main className="flex-1 overflow-auto px-6 py-5">
-          {metaLoading ? (
-            <div className="flex items-center justify-center gap-3 py-20"><Spin /> Loading table information...</div>
-          ) : (
-            <>
-              {activeTab === "overview" && (
-                <div className="grid grid-cols-2 gap-5 w-full">
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-                    <div className="px-5 py-3 border-b border-[var(--border)]" style={{ background: "rgba(99,102,241,.04)" }}>
-                      <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">Table Details</h3>
-                    </div>
-                    <div className="px-5 py-2">
-                      <InfoRow label="Schema" value={tableMeta?.schema_name || decodedSchema} />
-                      <InfoRow label="Table" value={tableMeta?.table_name || decodedTableName} />
-                      <InfoRow label="Table ID" value={tableMeta?.id || "-"} />
-                      <InfoRow label="Sync Enabled" value={String(tableMeta?.sync_enabled ?? true)} />
-                      <InfoRow label="Created" value={formatDateTime(tableMeta?.created_at)} />
-                      <InfoRow label="Updated" value={formatDateTime(tableMeta?.updated_at)} />
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-                    <div className="px-5 py-3 border-b border-[var(--border)]" style={{ background: "rgba(99,102,241,.04)" }}>
-                      <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">Sync Configuration</h3>
-                    </div>
-                    <div className="px-5 py-2">
-                      {syncConfigLoading ? (
-                        <div className="py-3 text-xs text-[var(--text-muted)] flex items-center gap-2"><Spin /> Loading sync config...</div>
-                      ) : (
-                        <>
-                          <InfoRow label="Strategy" value={syncConfig?.strategy || tableMeta?.sync_method || "-"} />
-                          <InfoRow label="Sync Method" value={tableMeta?.sync_method || "-"} />
-                          <InfoRow label="Frequency" value={tableMeta?.sync_frequency || "-"} />
-                          <InfoRow label="Schedule" value={tableMeta?.sync_schedule_time || "-"} />
-                          <InfoRow label="Unique Key Column" value={syncConfig?.unique_key_column_id || "-"} />
-                        </>
-                      )}
+                    <div className="flex items-center gap-3 pt-2">
+                      <div className={`relative w-9 h-5 rounded-full cursor-pointer transition-colors ${editForm.is_active ? 'bg-[var(--nav-active)]' : 'bg-[var(--border)]'}`}
+                           onClick={() => setEditForm(f => ({ ...f, is_active: !f.is_active }))}>
+                        <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm ${editForm.is_active ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                      <span className="text-sm font-bold text-[var(--text)]">Table is Active</span>
+                      <span className="text-xs text-[var(--text-muted)]">{editForm.is_active ? "This table is active" : "This table is inactive"}</span>
                     </div>
                   </div>
                 </div>
-              )}
+
+                <hr className="border-[var(--border)]" />
+
+                {/* Enable Synchronization */}
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-sm font-bold text-[var(--text)]">Enable Synchronization</span>
+                    <div className={`relative w-11 h-6 rounded-full cursor-pointer transition-colors ${editForm.sync_enabled ? 'bg-[#3b82f6]' : 'bg-[var(--border)]'}`}
+                         onClick={() => setEditForm(f => ({ ...f, sync_enabled: !f.sync_enabled }))}>
+                      <div className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] rounded-full bg-white transition-transform shadow-sm ${editForm.sync_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </div>
+                  </div>
+
+                  {editForm.sync_enabled && (
+                    <div className="p-5 bg-[var(--bg-input)] rounded-xl border border-[var(--border)] grid grid-cols-[1fr_1fr] gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-xs text-[var(--text-muted)] block mb-1">Sync Strategy</label>
+                          <select className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none"
+                                  value={editForm.sync_method}
+                                  onChange={e => setEditForm(f => ({ ...f, sync_method: e.target.value }))}>
+                             <option value="Full (Slower, more resource-intensive)">Full (Slower, more resource-intensive)</option>
+                             <option value="Incremental based on key">Incremental based on key</option>
+                          </select>
+                          <p className="text-[0.65rem] text-[var(--text-muted)] mt-1">Replaces all data during each sync</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-[var(--text-muted)] block mb-1">Sync Schedule Time</label>
+                          <div className="relative inline-block">
+                            <input type="time" className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg pl-3 pr-8 py-2 text-sm text-[var(--text)] outline-none w-32"
+                                   value={editForm.sync_schedule_time}
+                                   onChange={e => setEditForm(f => ({ ...f, sync_schedule_time: e.target.value }))} />
+                          </div>
+                          <p className="text-[0.65rem] text-[var(--text-muted)] mt-1">Daily time when the synchronization should run</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-[var(--text-muted)] block mb-1">Sync Frequency</label>
+                        <div className="flex items-center gap-3">
+                          <select className="flex-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none"
+                                  value={editForm.sync_frequency}
+                                  onChange={e => setEditForm(f => ({ ...f, sync_frequency: e.target.value }))}>
+                             <option value="Days">Days</option>
+                             <option value="Hours">Hours</option>
+                             <option value="Minutes">Minutes</option>
+                          </select>
+                          <span className="text-xs text-[var(--text)]">Every</span>
+                          <input type="number" 
+                                 className="w-16 bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-2 py-2 text-sm text-center text-[var(--text)] outline-none"
+                                 value={editForm.sync_frequency_interval}
+                                 onChange={e => setEditForm(f => ({ ...f, sync_frequency_interval: e.target.value }))} />
+                          <span className="text-xs text-[var(--text)]">{editForm.sync_frequency === "Days" ? "day" : editForm.sync_frequency === "Hours" ? "hour" : "minute"}</span>
+                        </div>
+                        <p className="text-[0.65rem] text-[var(--text-muted)] mt-1">
+                          Data will be synchronized every {editForm.sync_frequency_interval} {editForm.sync_frequency === "Days" ? "day" : editForm.sync_frequency === "Hours" ? "hour" : "minute"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <hr className="border-[var(--border)]" />
+
+                {/* Advanced Settings */}
+                <div className="p-6">
+                  <h3 className="text-sm font-bold text-[var(--text)] mb-4">Advanced Settings</h3>
+                  <div>
+                    <label className="text-xs text-[var(--text-muted)] block mb-1">Destination Path</label>
+                    <input className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none font-mono"
+                           value={editForm.destination_path}
+                           onChange={e => setEditForm(f => ({ ...f, destination_path: e.target.value }))} />
+                    <p className="text-[0.65rem] text-[var(--text-muted)] mt-1">Custom path where the table data will be stored in the data warehouse</p>
+                  </div>
+                </div>
+
+                <hr className="border-[var(--border)]" />
+                <div className="p-6 flex justify-end gap-3 bg-[var(--bg-card)]">
+                  <button className="px-5 py-2.5 rounded-lg text-sm font-semibold border border-[var(--border)] text-[var(--text)] bg-transparent"
+                          onClick={() => setIsEditing(false)}>Cancel</button>
+                  <button className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#3b82f6] shadow-sm flex items-center justify-center min-w-[130px]"
+                          onClick={handleSaveTableEdit} disabled={savingTable}>
+                    {savingTable ? <Spin /> : "Save Changes"}
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <header className="flex items-center justify-between px-6 py-5 border-b border-[var(--border)] bg-[var(--bg-card)]">
+              <div className="flex items-center gap-4 min-w-0">
+                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors" onClick={() => navigate(`/datasources/${sourceId}`)}>
+                  <I d={ico.back} size={14} /> Back
+                </button>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-[var(--nav-active)] bg-transparent text-[var(--nav-active)]">
+                  <I d={ico.db} size={20} color="currentColor" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-xl font-bold transition-all truncate text-[var(--text)] leading-tight">{tableMeta?.table_name || decodedTableName}</h1>
+                  <p className="text-[0.7rem] text-[var(--text-muted)] truncate mt-1">
+                    {source?.name || `Data Source ${sourceId}`} &gt; {decodedSchema} &gt; {decodedTableName}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className={`${btnS} !px-4 !py-2 !rounded-lg text-sm`} onClick={fetchMeta}>
+                  <I d={ico.refresh} size={15} /> Refresh
+                </button>
+                <button className={`${btnP} !px-4 !py-2 !rounded-lg shadow-sm text-sm`} style={{ background: "#3b82f6", fontWeight: "bold" }} onClick={handleSyncNow} disabled={syncingTable}>
+                  {syncingTable ? <Spin /> : <I d={ico.refresh} size={15} color="#fff" />} Sync Now
+                </button>
+              </div>
+            </header>
+
+            <div className="flex items-center px-6 border-b border-[var(--border)] bg-[var(--bg-card)] shrink-0">
+              {TABS.map((tab) => (
+                <button key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="px-5 py-4 text-sm font-semibold cursor-pointer flex items-center gap-2 transition-all relative"
+                  style={{
+                    color: activeTab === tab.id ? "var(--nav-active)" : "var(--text-muted)",
+                    background: "transparent",
+                    border: "none",
+                  }}>
+                  <I d={ico[tab.icon]} size={15} />
+                  {tab.label}
+                  {activeTab === tab.id && (
+                    <div className="absolute bottom-0 left-0 w-full h-[3px] bg-[var(--nav-active)] rounded-t-sm" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <main className="flex-1 overflow-auto px-6 py-5">
+              {metaLoading ? (
+                <div className="flex items-center justify-center gap-3 py-20"><Spin /> Loading table information...</div>
+              ) : (
+                <>
+                  {activeTab === "overview" && (
+                    <div className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
+                      <div className="px-6 py-4 flex items-start justify-between border-b border-[var(--border)]">
+                        <div>
+                          <h2 className="text-lg font-bold text-[var(--text)]">Table Information</h2>
+                          <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">{tableMeta?.destination_path || `/data/sql19/${decodedSchema}/${decodedTableName}`}</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button className="p-1.5 rounded-md hover:bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[#3b82f6] transition-colors"
+                             onClick={handleOpenEdit}>
+                            <I d={ico.pencil} size={18} />
+                          </button>
+                          <button className="p-1.5 rounded-md hover:bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[#f87171] transition-colors"
+                             onClick={handleDeleteTable}>
+                            <I d={ico.trash} size={18} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="px-6 py-5">
+                        <div className="grid grid-cols-3 gap-6 mb-8">
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Schema</p>
+                            <p className="text-sm font-medium text-[var(--text)]">{tableMeta?.schema_name || decodedSchema}</p>
+                          </div>
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Table Name</p>
+                            <p className="text-sm font-medium text-[var(--text)]">{tableMeta?.table_name || decodedTableName}</p>
+                          </div>
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Type</p>
+                            <p className="text-sm font-medium text-[var(--text)]">Table</p>
+                          </div>
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Status</p>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-2 h-2 rounded-full ${tableMeta?.is_active !== false ? 'bg-[#4ade80]' : 'bg-[#94a3b8]'}`}></span>
+                              <p className="text-sm font-medium text-[var(--text)]">{tableMeta?.is_active !== false ? "Active" : "Inactive"}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Destination Path</p>
+                            <p className="text-sm font-medium text-[var(--text)] font-mono">{tableMeta?.destination_path || `/data/sql19/${decodedSchema}/${decodedTableName}`}</p>
+                          </div>
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Created</p>
+                            <p className="text-sm font-medium text-[var(--text)]">{formatDateTime(tableMeta?.created_at) || "12/3/2025, 11:29:37 AM"}</p>
+                          </div>
+                        </div>
+
+                        <h3 className="text-md font-bold text-[var(--text)] mb-5">Synchronization</h3>
+                        
+                        <div className="grid grid-cols-3 gap-6">
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Sync Status</p>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-2 h-2 rounded-full ${tableMeta?.sync_enabled !== false ? 'bg-[#4ade80]' : 'bg-[#94a3b8]'}`}></span>
+                              <p className="text-sm font-medium text-[var(--text)]">{tableMeta?.sync_enabled !== false ? "Enabled" : "Disabled"}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Sync Method</p>
+                            <p className="text-sm font-medium text-[var(--text)]">{tableMeta?.sync_method || syncConfig?.strategy || "Full"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Sync Frequency</p>
+                            <p className="text-sm font-medium text-[var(--text)]">1 daily at 00:00</p>
+                          </div>
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Last Metadata Sync</p>
+                            <p className="text-sm font-medium text-[var(--text)]">{formatDateTime(tableMeta?.updated_at) || "12/3/2025, 4:59:37 PM"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-wide mb-1">Last Data Sync</p>
+                            <p className="text-sm font-medium text-[var(--text)]">3/25/2026, 12:05:03 AM</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
               {activeTab === "columns" && (
                 <div className="grid grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] gap-5 min-h-[560px] w-full">
@@ -1016,14 +1257,15 @@ export default function TableDetail() {
                   )}
                 </div>
               )}
-            </>
-          )}
-        </main>
-
-        <footer className="px-6 py-3 border-t border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between text-[0.65rem] text-[var(--text-muted)] shrink-0">
-          <span>© 2026 PCSoft Analytics</span>
-          <span>v1.0.0</span>
-        </footer>
+              </>
+            )}
+          </main>
+          <footer className="px-6 py-3 border-t border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between text-[0.65rem] text-[var(--text-muted)] shrink-0">
+            <span>© 2026 PCSoft Analytics</span>
+            <span>v1.0.0</span>
+          </footer>
+        </>
+        )}
       </div>
 
       <Toast />
