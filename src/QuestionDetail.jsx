@@ -343,7 +343,7 @@ export default function QuestionDetail() {
               {/* ── Metadata bar (matching screenshot) ── */}
               <div className="flex flex-wrap items-center gap-2 p-4 rounded-xl"
                 style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                {question.chart_type && (
+                {question.chart_type && String(question.chart_type).toLowerCase() !== "null" && (
                   <MetaBadge label="Chart Type" value={question.chart_type}
                     color={(() => { const c = ["#818cf8","#34d399","#f472b6","#fb923c","#a78bfa"]; let h = 0; for (const ch of (question.chart_type||"")) h = (h*31+ch.charCodeAt(0))&0xffffff; return c[Math.abs(h)%c.length]; })()}
                   />
@@ -359,7 +359,7 @@ export default function QuestionDetail() {
                 {matLimit && (
                   <MetaBadge label="Active Configurations" value={`LIMIT: ${matLimit}`} color="#f472b6" />
                 )}
-                {question.status && (
+                {question.status && String(question.status).toLowerCase() !== "null" && (
                   <MetaBadge label="Status" value={question.status}
                     color={question.status === "published" ? "#4ade80" : question.status === "archived" ? "#94a3b8" : "#facc15"}
                   />

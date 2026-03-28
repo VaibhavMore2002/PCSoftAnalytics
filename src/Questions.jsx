@@ -249,8 +249,8 @@ export default function Questions() {
   const [categories, setCategories]= useState([]);
   const [loading, setLoading]      = useState(true);
 
-  // Helper handling literal "null" strings
-  const f = (val, fallback) => (!val || val === "null" || val === "undefined") ? fallback : val;
+  // Helper handling literal "null" strings case-insensitively
+  const f = (val, fallback) => (!val || String(val).trim().toLowerCase() === "null" || String(val).trim().toLowerCase() === "undefined") ? fallback : val;
   const [search, setSearch]        = useState("");
   const [statusTab, setStatusTab]  = useState("All");
   const [groupFilter, setGroupFilter] = useState("all");
