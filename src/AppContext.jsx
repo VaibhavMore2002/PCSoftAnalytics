@@ -23,6 +23,7 @@ const PATH_TO_NAV = {
   "/datasources": "Data Sources",
   "/datasets":    "Data Sets",
   "/profile":     "Profile",
+  "/questions":   "Questions",
 };
 
 export const AppProvider = ({ children }) => {
@@ -39,6 +40,7 @@ export const AppProvider = ({ children }) => {
     else if (label === "Data Sources") navigate("/datasources");
     else if (label === "Data Sets")    navigate("/datasets");
     else if (label === "Profile")      navigate("/profile");
+    else if (label === "Questions")    navigate("/questions");
   };
 
   // Build display user from API user or fallback

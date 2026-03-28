@@ -144,6 +144,7 @@ const ROUTE_LABEL_MAP = [
   { path: "/datasources", label: "Data Sources" },
   { path: "/datasets", label: "Data Sets" },
   { path: "/reports", label: "Reports" },
+  { path: "/questions", label: "Questions" },
   { path: "/settings", label: "Settings" },
   { path: "/profile", label: "Profile" },
   { path: "/subscriptions", label: "Subscriptions" },
@@ -213,6 +214,7 @@ export default function Sidebar({
     else if (label === "Settings") navigate("/settings");
     else if (label === "Data Sources") navigate("/datasources");
     else if (label === "Reports") navigate("/reports");
+    else if (label === "Questions") navigate("/questions");
     else if (label === "Data Sets") navigate("/datasets");
     else if (label === "Profile") navigate("/profile");
     else if (label === "Subscriptions") navigate("/subscriptions");
