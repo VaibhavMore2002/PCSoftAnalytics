@@ -204,8 +204,8 @@ export default function QuestionDetail() {
     if (!api || !id) return;
     setLoading(true);
     try {
-      const data = await api(`/api/v1/questions-v2/${id}`);
-      setQuestion(data);
+      const resp = await api(`/api/v1/questions-v2/${id}`);
+      setQuestion(resp?.data || resp);
     } catch {
       push("Failed to load question", "error");
     } finally {

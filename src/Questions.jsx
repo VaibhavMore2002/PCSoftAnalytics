@@ -54,10 +54,10 @@ function colorForType(t) {
   return CHART_PALETTE[Math.abs(h) % CHART_PALETTE.length];
 }
 
-function Badge({ label, bg, color, border }) {
+function Badge({ label, bg, color, border, className = "" }) {
   return (
-    <span className="text-[0.62rem] font-bold px-2 py-0.5 rounded-full whitespace-nowrap capitalize inline-block"
-      style={{ background: bg, color, border: `1px solid ${border}` }}>
+    <span className={`text-[0.62rem] font-bold px-2 py-0.5 rounded-full whitespace-nowrap capitalize inline-block ${className}`}
+      style={{ background: bg, color, border: border ? `1px solid ${border}` : undefined }}>
       {label}
     </span>
   );
@@ -502,7 +502,9 @@ export default function Questions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginated.map(q => (
+                  {paginated.map(q => {
+                    const groupName = f(categories.find(c => String(c.id) === String(q.category_id))?.name, null);
+                    return (
                     <tr key={q.id}
                       className="border-b border-[var(--border)] hover:bg-[var(--bg-input)] transition-colors cursor-pointer group"
                       onClick={() => navigate(`/questions/${q.id}`)}>
@@ -517,12 +519,16 @@ export default function Questions() {
                         </p>
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className="text-xs text-[var(--text-muted)]">
-                          {f(q.category?.name, "—")}
-                        </span>
+                        {groupName ? (
+                          <Badge label={groupName} bg="rgba(148,163,184,.12)" color="#94a3b8" />
+                        ) : (
+                          <Badge label="—" bg="rgba(148,163,184,.12)" color="#94a3b8" />
+                        )}
                       </td>
                       <td className="px-3 py-2.5">
-                        <ChartBadge type={f(q.chart_type, "")} />
+                        <span className="text-xs font-medium text-[var(--text-sub)]">
+                          {f(q.chart_type, "—")}
+                        </span>
                       </td>
                       <td className="px-3 py-2.5">
                         <StatusBadge status={f(q.status, "draft")} />
@@ -572,7 +578,7 @@ export default function Questions() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                  );})}
                 </tbody>
               </table>
 

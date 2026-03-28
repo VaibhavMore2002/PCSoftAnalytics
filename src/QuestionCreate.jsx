@@ -247,7 +247,8 @@ export default function QuestionCreate() {
   // Load existing question if edit mode
   useEffect(() => {
     if (id && api) {
-      api(`/api/v1/questions-v2/${id}`).then(q => {
+      api(`/api/v1/questions-v2/${id}`).then(resp => {
+        const q = resp?.data || resp;
         setQName(q.name && q.name !== "null" ? q.name : "Untitled chart");
         setQDesc(q.description && q.description !== "null" ? q.description : "");
         setQGroup(q.category_id ? String(q.category_id) : "");
