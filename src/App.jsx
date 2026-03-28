@@ -13,6 +13,7 @@ import DataSetEditor from "./DataSetEditor.jsx";
 import DataSetDefinition from "./qr.jsx";
 import Login from "./Login.jsx";
 import UserProfile from "./UserProfile.jsx";
+import Reports from "./Reports.jsx";
 import { ThemeProvider } from "./ThemeContext.jsx";
 import { AppProvider } from "./AppContext.jsx";
 import { AuthProvider, useAuth } from "./AuthContext.jsx";
@@ -39,6 +40,7 @@ function ProtectedRoutes() {
         <Route path="/datasets/:id/edit" element={<DataSetDefinition />} />
         <Route path="/datasets/new" element={<DataSetEditor />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/reports" element={<Reports />} />
       </Routes>
     </AppProvider>
   );

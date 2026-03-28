@@ -142,11 +142,12 @@ function Icon({ name, size = 18, color = "currentColor" }) {
 const ROUTE_LABEL_MAP = [
   { path: "/dashboards", label: "Dashboards" },
   { path: "/datasources", label: "Data Sources" },
-  { path: "/datasets",    label: "Data Sets" },
-  { path: "/settings",    label: "Settings" },
-  { path: "/profile",     label: "Profile" },
+  { path: "/datasets", label: "Data Sets" },
+  { path: "/reports", label: "Reports" },
+  { path: "/settings", label: "Settings" },
+  { path: "/profile", label: "Profile" },
   { path: "/subscriptions", label: "Subscriptions" },
-  { path: "/",            label: "Home" },   // keep "/" last — it's the catch-all
+  { path: "/", label: "Home" },   // keep "/" last — it's the catch-all
 ];
 
 function useLabelFromPath(navItems) {
@@ -170,26 +171,26 @@ export default function Sidebar({
   // ── Persist collapsed state in sessionStorage ──────────
   const [minimized, setMinimized] = useState(() => {
     if (initialMinimized) {
-      try { sessionStorage.setItem("sidebar-minimized", "true"); } catch (_) {}
+      try { sessionStorage.setItem("sidebar-minimized", "true"); } catch (_) { }
       return true;
     }
     try {
       const stored = sessionStorage.getItem("sidebar-minimized");
       if (stored !== null) return stored === "true";
-    } catch (_) {}
+    } catch (_) { }
     return initialMinimized;
   });
 
   useEffect(() => {
     if (!initialMinimized) return;
     setMinimized(true);
-    try { sessionStorage.setItem("sidebar-minimized", "true"); } catch (_) {}
+    try { sessionStorage.setItem("sidebar-minimized", "true"); } catch (_) { }
   }, [initialMinimized]);
 
   const toggleMinimized = () => {
     setMinimized((prev) => {
       const next = !prev;
-      try { sessionStorage.setItem("sidebar-minimized", String(next)); } catch (_) {}
+      try { sessionStorage.setItem("sidebar-minimized", String(next)); } catch (_) { }
       return next;
     });
   };
@@ -211,6 +212,7 @@ export default function Sidebar({
     else if (label === "Dashboards") navigate("/dashboards");
     else if (label === "Settings") navigate("/settings");
     else if (label === "Data Sources") navigate("/datasources");
+    else if (label === "Reports") navigate("/reports");
     else if (label === "Data Sets") navigate("/datasets");
     else if (label === "Profile") navigate("/profile");
     else if (label === "Subscriptions") navigate("/subscriptions");
