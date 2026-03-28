@@ -265,7 +265,7 @@ export default function Questions() {
     setLoading(true);
     try {
       const [qRes, catRes] = await Promise.allSettled([
-        api("/api/v1/questions-v2/?skip=0&limit=1000"),
+        api("/api/v1/questions-v2/?skip=0&limit=100"),
         api("/api/v1/questions-v2/categories"),
       ]);
       if (qRes.status === "fulfilled") {
