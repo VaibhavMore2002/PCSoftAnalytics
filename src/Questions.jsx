@@ -248,6 +248,9 @@ export default function Questions() {
   const [questions, setQuestions]  = useState([]);
   const [categories, setCategories]= useState([]);
   const [loading, setLoading]      = useState(true);
+
+  // Helper handling literal "null" strings
+  const f = (val, fallback) => (!val || val === "null" || val === "undefined") ? fallback : val;
   const [search, setSearch]        = useState("");
   const [statusTab, setStatusTab]  = useState("All");
   const [groupFilter, setGroupFilter] = useState("all");
@@ -505,24 +508,24 @@ export default function Questions() {
                       onClick={() => navigate(`/questions/${q.id}`)}>
                       <td className="px-3 py-2.5">
                         <p className="text-xs font-semibold truncate group-hover:text-[var(--nav-active)] transition-colors">
-                          {q.name || "Untitled"}
+                          {f(q.name, "Untitled")}
                         </p>
                       </td>
                       <td className="px-3 py-2.5">
                         <p className="text-xs text-[var(--text-muted)] truncate">
-                          {q.description || "—"}
+                          {f(q.description, "—")}
                         </p>
                       </td>
                       <td className="px-3 py-2.5">
                         <span className="text-xs text-[var(--text-muted)]">
-                          {q.category?.name || "—"}
+                          {f(q.category?.name, "—")}
                         </span>
                       </td>
                       <td className="px-3 py-2.5">
-                        <ChartBadge type={q.chart_type} />
+                        <ChartBadge type={f(q.chart_type, "")} />
                       </td>
                       <td className="px-3 py-2.5">
-                        <StatusBadge status={q.status || "draft"} />
+                        <StatusBadge status={f(q.status, "draft")} />
                       </td>
                       <td className="px-3 py-2.5">
                         <span className="text-xs text-[var(--text-muted)]">
