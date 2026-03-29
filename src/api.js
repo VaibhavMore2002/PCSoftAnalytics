@@ -1,4 +1,4 @@
-const BASE_URL = 'http://pcsoft.ieverp.com:8000';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export function getAuthHeader(username, password) {
   return 'Basic ' + btoa(`${username}:${password}`);
