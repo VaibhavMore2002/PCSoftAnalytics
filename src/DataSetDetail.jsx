@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
 import { useApp } from "./AppContext.jsx";
+import { PageSkeleton } from "./Skeleton.jsx";
 
 /* ═══════════════════════════════════════════════════════════
    SVG helpers
@@ -199,16 +200,7 @@ export default function DataSetDetail() {
     </svg>
   );
 
-  if (loading) {
-    return (
-      <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
-        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} logo={logo} />
-        <div className="flex-1 flex items-center justify-center gap-3">
-          <Spin /> <span className="text-sm text-[var(--text-muted)]">Loading dataset…</span>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton />;
 
   if (!ds) {
     return (

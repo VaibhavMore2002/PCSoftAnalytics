@@ -14,6 +14,7 @@ import DataSetDefinition from "./qr.jsx";
 import Login from "./Login.jsx";
 import UserProfile from "./UserProfile.jsx";
 import Reports from "./Reports.jsx";
+import ReportDetail from "./ReportDetail.jsx";
 import { ThemeProvider } from "./ThemeContext.jsx";
 import { AppProvider } from "./AppContext.jsx";
 import { AuthProvider, useAuth } from "./AuthContext.jsx";
@@ -41,6 +42,7 @@ function ProtectedRoutes() {
         <Route path="/datasets/new" element={<DataSetEditor />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/reports/:id" element={<ReportDetail />} />
       </Routes>
     </AppProvider>
   );

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
 import { useTheme } from "./ThemeContext.jsx";
 import { useApp } from "./AppContext.jsx";
+import { Sk } from "./Skeleton.jsx";
 
 // ── Icons ──────────────────────────────────────────────────
 function Icon({ name, size = 18, color = "currentColor" }) {
@@ -70,9 +71,11 @@ export default function UserProfile() {
   const navigate = useNavigate();
 
   const [statsData, setStatsData] = useState({ dashboards: "—", reports: "—", sources: "—" });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     Promise.all([
       api("/api/v1/dashboards/", {}, { limit: 1 }).catch(() => null),
       api("/api/v1/reports/",    {}, { limit: 1 }).catch(() => null),
@@ -84,7 +87,8 @@ export default function UserProfile() {
         reports:    rp?.total ?? rp?.data?.length ?? "—",
         sources:    ds?.total ?? ds?.data?.length ?? "—",
       });
-    });
+      setLoading(false);
+    }).catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [api]);
 
@@ -141,6 +145,57 @@ export default function UserProfile() {
         {/* Scrollable content */}
         <div className="flex-1 overflow-auto p-7 flex flex-col gap-7">
 
+          {loading ? (
+            /* ─── SKELETON ─── */
+            <>
+              {/* Hero card skeleton */}
+              <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border)] p-6 flex items-center gap-5"
+                style={{ borderTop: "2px solid var(--border)" }}>
+                <Sk w={64} h={64} r={14} />
+                <div className="flex-1 flex flex-col gap-2.5">
+                  <Sk w="40%" h={18} />
+                  <Sk w="60%" h={11} />
+                  <Sk w="25%" h={10} />
+                </div>
+                <div className="flex gap-2">
+                  <Sk w={90} h={34} r={9} />
+                  <Sk w={80} h={34} r={9} />
+                </div>
+              </div>
+
+              {/* Stats row skeleton */}
+              <div className="grid grid-cols-3 gap-3.5">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="rounded-xl p-[18px_20px] bg-[var(--bg-card)] border border-[var(--border)] flex flex-col gap-3"
+                    style={{ borderLeft: "3px solid var(--border)" }}>
+                    <Sk w={32} h={32} r={8} />
+                    <Sk w={52} h={22} r={5} />
+                    <Sk w="65%" h={10} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Preferences + Activity skeleton */}
+              <div className="grid grid-cols-2 gap-3.5">
+                {[0, 1].map((col) => (
+                  <div key={col} className="rounded-xl p-[18px_20px] bg-[var(--bg-card)] border border-[var(--border)] flex flex-col gap-3">
+                    <Sk w="35%" h={10} />
+                    {[0, 1, 2].map((row) => (
+                      <div key={row} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ background: "var(--bg-hover)", border: "1px solid var(--border)" }}>
+                        <Sk w={28} h={28} r={7} />
+                        <div className="flex-1 flex flex-col gap-1.5">
+                          <Sk w="30%" h={8} />
+                          <Sk w="55%" h={11} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            /* ─── REAL CONTENT ─── */
+            <>
           {/* ── Profile Hero Card ─────────────────── */}
           <div
             className="fade-up rounded-xl bg-[var(--bg-card)] border border-[var(--border)] [box-shadow:var(--shadow)] shrink-0"
@@ -304,6 +359,8 @@ export default function UserProfile() {
               </div>
             </div>
           </div>
+            </>
+          )}
 
         </div>{/* end scrollable */}
       </div>{/* end main */}
