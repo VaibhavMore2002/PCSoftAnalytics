@@ -1,4 +1,4 @@
-const BASE_URL = 'http://192.168.0.94:8000';
+const BASE_URL = 'http://pcsoft.ieverp.com:8000';
 
 export function getAuthHeader(username, password) {
   return 'Basic ' + btoa(`${username}:${password}`);
