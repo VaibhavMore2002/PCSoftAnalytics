@@ -16,7 +16,7 @@ import UserProfile from "./UserProfile.jsx";
 import Reports from "./Reports.jsx";
 import Questions from "./Questions.jsx";
 import QuestionDetail from "./QuestionDetail.jsx";
-import QuestionCreate from "./QuestionCreate.jsx";
+import QuestionCreate from "./qc.jsx";
 import { ThemeProvider } from "./ThemeContext.jsx";
 import { AppProvider } from "./AppContext.jsx";
 import { AuthProvider, useAuth } from "./AuthContext.jsx";
