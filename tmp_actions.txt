@@ -1,1 +1,360 @@
-["user_create","user_update","user_delete","user_activate","user_deactivate","password_change","password_reset","role_change","login_success","login_failure","logout","profile_update","content_share","content_unshare"]
+GET /api/v1/health/ >> Health Check
+GET /api/v1/health/detailed >> Detailed Health Check
+GET /api/v1/health/ready >> Readiness Check
+GET /api/v1/health/live >> Liveness Check
+GET /api/v1/data-sources/{data_source_id}/sync-inheritance-stats >> Get Sync Inheritance Stats
+GET /api/v1/data-sources/ >> List Data Sources
+POST /api/v1/data-sources/ >> Create Data Source
+GET /api/v1/data-sources/{source_id} >> Get Data Source
+PUT /api/v1/data-sources/{source_id} >> Update Data Source
+DELETE /api/v1/data-sources/{source_id} >> Delete Data Source
+POST /api/v1/data-sources/test-connection >> Test Connection
+POST /api/v1/data-sources/{source_id}/test-connection >> Test Existing Connection
+GET /api/v1/data-sources/{source_id}/tables >> List Tables
+GET /api/v1/data-sources/{source_id}/tables/{schema}/{table}/columns >> List Columns
+POST /api/v1/files/upload >> Upload File
+GET /api/v1/files/list >> List Files
+GET /api/v1/files/download/{filename} >> Download File
+DELETE /api/v1/files/{filename} >> Delete File
+GET /api/v1/analytics/summary/{data_source_id}/{table_name} >> Get Summary Statistics
+GET /api/v1/analytics/query >> Run Analytics Query
+POST /api/v1/auth/login >> Login
+POST /api/v1/auth/logout >> Logout
+GET /api/v1/auth/me >> Read Users Me
+GET /api/v1/query/tables/{table_id}/related-tables >> Get related tables
+POST /api/v1/query/query/join-path >> Find join path
+GET /api/v1/datasets/ >> List Datasets
+POST /api/v1/datasets/ >> Create Dataset
+GET /api/v1/datasets/available-as-source >> Get Available Datasets for Sources
+GET /api/v1/datasets/{dataset_id} >> Get Dataset by ID
+PUT /api/v1/datasets/{dataset_id} >> Update Dataset
+DELETE /api/v1/datasets/{dataset_id} >> Delete Dataset
+GET /api/v1/datasets/{dataset_id}/output-columns >> Get Dataset Output Columns (Normalized)
+POST /api/v1/datasets/validate-dependencies >> Validate Dataset Dependencies
+POST /api/v1/datasets/{dataset_id}/duplicate >> Duplicate Dataset
+GET /api/v1/datasets/{dataset_id}/versions >> List Dataset Versions
+GET /api/v1/datasets/{dataset_id}/versions/{version_id} >> Get Dataset Version
+POST /api/v1/datasets/{dataset_id}/sync >> Trigger Dataset Sync/Materialization (Async)
+GET /api/v1/datasets/{dataset_id}/sync/status >> Get Dataset Sync Status
+POST /api/v1/datasets/preview >> Preview Dataset Data
+GET /api/v1/datasets/{dataset_id}/datasetschema >> Get Dataset Schema
+GET /api/v1/datasets/{dataset_id}/data >> Get Materialized Dataset Data
+POST /api/v1/datasets/{dataset_id}/data >> Get Materialized Dataset Data with Filters (POST)
+GET /api/v1/datasets/{dataset_id}/columns/{column_name}/unique-values >> Get Unique Column Values
+POST /api/v1/datasets/{dataset_id}/refresh-schema >> Refresh SQL Dataset Schema
+POST /api/v1/datasets/{dataset_id}/materialize >> Materialize Dataset (Deprecated)
+POST /api/v1/datasets/{dataset_id}/generate-profile >> Generate AI Profile for Dataset
+GET /api/v1/datasets/{dataset_id}/profile >> Get Dataset AI Profile
+POST /api/v1/datasets/custom-sql/validate >> Validate SQL Query
+POST /api/v1/datasets/custom-sql/preview >> Preview SQL Query Results
+POST /api/v1/datasets/custom-sql/create >> Create Custom SQL Dataset
+PUT /api/v1/datasets/custom-sql/{dataset_id} >> Update Custom SQL Dataset
+GET /api/v1/datasets/custom-sql/tables >> Get Available Tables with Search
+POST /api/v1/datasets/custom-sql/tables/batch >> Get Specific Tables by IDs
+GET /api/v1/tables/ >> List Tables
+POST /api/v1/tables/ >> Create Table
+GET /api/v1/tables/{table_id} >> Get Table
+PUT /api/v1/tables/{table_id} >> Update Table
+DELETE /api/v1/tables/{table_id} >> Delete Table
+POST /api/v1/tables/{table_id}/enable-sync >> Enable Table Sync
+POST /api/v1/tables/{table_id}/disable-sync >> Disable Table Sync
+POST /api/v1/tables/bulk-sync-update >> Bulk Update Table Sync
+GET /api/v1/tables/{table_id}/data-preview >> Get Table Data Preview
+GET /api/v1/tables/{table_id}/sync-config >> Get Table Sync Config
+PUT /api/v1/tables/{table_id}/sync-config >> Update Table Sync Config
+DELETE /api/v1/tables/{table_id}/sync-config >> Delete Table Sync Config
+POST /api/v1/tables/{table_id}/sync-config/auto-detect >> Auto Detect Table Sync Config
+GET /api/v1/tables/{table_id}/sync-config/columns >> Get Table Sync Config Columns
+GET /api/v1/columns/ >> List Columns
+POST /api/v1/columns/ >> Create Column
+GET /api/v1/columns/{column_id} >> Get Column
+PUT /api/v1/columns/{column_id} >> Update Column
+DELETE /api/v1/columns/{column_id} >> Delete Column
+POST /api/v1/columns/bulk-sync-update >> Bulk Update Column Sync
+POST /api/v1/discovery/run/{data_source_id}/sync >> Discover Metadata Sync
+POST /api/v1/tables/{table_id}/sync >> Sync Table
+POST /api/v1/data-sources/{data_source_id}/sync >> Sync Data Source
+GET /api/v1/tasks/{task_id}/status >> Get Task Status
+POST /api/v1/sync/all >> Sync All Data Sources
+GET /api/v1/sync/status >> Get Sync Status
+GET /api/v1/data-sources/{source_id}/sync-tables >> List Sync Tables
+GET /api/v1/admin/sync-status >> Get Sync Status Summary
+POST /api/v1/admin/reset-sync-state >> Reset Sync State
+GET /api/v1/sync-logs/ >> List Sync Logs
+GET /api/v1/sync-logs/{sync_log_id} >> Get Sync Log
+GET /api/v1/sync-logs/tables/{table_id}/latest >> Get Latest Sync Log
+GET /api/v1/sync-logs/stats/summary >> Get Sync Stats
+GET /api/v1/relationships >> List all relationships
+POST /api/v1/relationships >> Create a new relationship
+GET /api/v1/relationships/{relationship_id} >> Get relationship details
+PUT /api/v1/relationships/{relationship_id} >> Update relationship
+DELETE /api/v1/relationships/{relationship_id} >> Delete relationship
+GET /api/v1/relationships/{relationship_id}/column-mappings >> List column mappings
+GET /api/v1/relationships/tables/{table_id}/relationships >> Get table relationships
+GET /api/v1/reports/ >> List Reports
+POST /api/v1/reports/ >> Create Report
+GET /api/v1/reports/categories >> List Report Categories
+POST /api/v1/reports/categories >> Create Report Category
+GET /api/v1/reports/{report_id} >> Get Report by ID
+PUT /api/v1/reports/{report_id} >> Update Report
+DELETE /api/v1/reports/{report_id} >> Delete Report
+POST /api/v1/reports/{report_id}/duplicate >> Duplicate Report
+POST /api/v1/reports/preview >> Preview Report
+POST /api/v1/reports/{report_id}/materialize >> Materialize Report
+GET /api/v1/reports/{report_id}/materialization-status/{task_id} >> Get Materialization Status
+GET /api/v1/reports/{report_id}/grand-totals >> Get Grand Totals for Report
+GET /api/v1/reports/{report_id}/drill-level >> Query Specific Drill Level
+POST /api/v1/reports/{report_id}/drill-level >> Query Specific Drill Level (POST)
+GET /api/v1/reports/{report_id}/access >> List Report Access
+POST /api/v1/reports/{report_id}/access/{user_id} >> Grant Report Access
+DELETE /api/v1/reports/{report_id}/access/{user_id} >> Revoke Report Access
+GET /api/v1/reports/{report_id}/schedule >> Get Report Schedule
+POST /api/v1/reports/{report_id}/schedule >> Create Report Schedule
+PUT /api/v1/reports/schedule/{schedule_id} >> Update Report Schedule
+DELETE /api/v1/reports/schedule/{schedule_id} >> Delete Report Schedule
+POST /api/v1/reports/{report_id}/query >> Query Report with Runtime Filters and Re-Aggregation
+GET /api/v1/reports/{report_id}/columns/{column_name}/unique-values >> Get Unique Column Values
+GET /api/v1/questions/ >> Get Questions
+GET /api/v1/questions/chart-types >> Get Chart Types
+GET /api/v1/questions/categories >> Get Question Categories
+POST /api/v1/questions/categories >> Create Question Category
+GET /api/v1/questions/{question_id} >> Get Question
+DELETE /api/v1/questions/{question_id} >> Delete Question
+POST /api/v1/questions/{question_id}/duplicate >> Duplicate Question
+POST /api/v1/questions/{question_id}/data >> Get Question Data
+GET /api/v1/questions/{question_id}/drill-down >> Get Drill Down Data
+POST /api/v1/questions/{question_id}/tooltip-data >> Get Tooltip Data
+PUT /api/v1/questions/categories/{category_id} >> Update Question Category
+DELETE /api/v1/questions/categories/{category_id} >> Delete Question Category
+POST /api/v1/questions-v2/ >> Create Question (v2 Format)
+GET /api/v1/questions-v2/ >> List Questions (v2 Format)
+PUT /api/v1/questions-v2/{question_id} >> Update Question (v2 Format)
+GET /api/v1/questions-v2/{question_id} >> Get Question (v2 Format)
+DELETE /api/v1/questions-v2/{question_id} >> Delete Question
+GET /api/v1/questions-v2/categories >> Get Question Categories
+POST /api/v1/questions-v2/categories >> Create Question Category
+PUT /api/v1/questions-v2/categories/{category_id} >> Update Question Category
+DELETE /api/v1/questions-v2/categories/{category_id} >> Delete Question Category
+GET /api/v1/questions-v2/chart-types >> Get Chart Types
+GET /api/v1/questions-v2/health >> V2 API Health Check
+POST /api/v1/questions-v2/preview >> Preview Question Data (v2 Format)
+POST /api/v1/questions-v2/convert/v1-to-v2/{question_id} >> Convert Question from v1 to v2 Format
+GET /api/v1/questions-v2/{question_id}/data >> Get Question Data (v2 Format)
+POST /api/v1/questions-v2/{question_id}/materialize >> Materialize Question Data
+POST /api/v1/questions-v2/{question_id}/duplicate >> Duplicate Question
+POST /api/v1/questions-v2/validate-measures >> Validate Derived Measures
+POST /api/v1/dashboards/ >> Create Dashboard
+GET /api/v1/dashboards/ >> Get Dashboards
+GET /api/v1/dashboards/categories >> Get Dashboard Categories
+POST /api/v1/dashboards/categories >> Create Dashboard Category
+GET /api/v1/dashboards/{dashboard_id} >> Get Dashboard
+PUT /api/v1/dashboards/{dashboard_id} >> Update Dashboard
+DELETE /api/v1/dashboards/{dashboard_id} >> Delete Dashboard
+POST /api/v1/dashboards/{dashboard_id}/duplicate >> Duplicate Dashboard
+GET /api/v1/dashboards/{dashboard_id}/columns >> Get Dashboard Columns
+GET /api/v1/dashboards/{dashboard_id}/data >> Get Dashboard Data
+POST /api/v1/dashboards/{dashboard_id}/refresh >> Refresh Dashboard
+PUT /api/v1/dashboards/{dashboard_id}/layout >> Update Dashboard Layout
+POST /api/v1/dashboards/{dashboard_id}/widgets >> Create Dashboard Widget
+PUT /api/v1/dashboards/widgets/{widget_id} >> Update Dashboard Widget
+DELETE /api/v1/dashboards/widgets/{widget_id} >> Delete Dashboard Widget
+PUT /api/v1/dashboards/categories/{category_id} >> Update Dashboard Category
+DELETE /api/v1/dashboards/categories/{category_id} >> Delete Dashboard Category
+GET /api/v1/dashboards/{dashboard_id}/access >> List Dashboard Access
+POST /api/v1/dashboards/{dashboard_id}/access >> Grant Dashboard Access
+PUT /api/v1/dashboards/{dashboard_id}/access/{access_id} >> Update Dashboard Access
+DELETE /api/v1/dashboards/{dashboard_id}/access/{access_id} >> Revoke Dashboard Access
+GET /api/v1/dashboards/{dashboard_id}/me/access >> Get My Dashboard Access
+GET /api/v1/dashboards/{dashboard_id}/filters >> Get Dashboard Filters
+POST /api/v1/dashboards/{dashboard_id}/filters >> Create Dashboard Filter
+PUT /api/v1/dashboards/{dashboard_id}/filters/{filter_id} >> Update Dashboard Filter
+DELETE /api/v1/dashboards/{dashboard_id}/filters/{filter_id} >> Delete Dashboard Filter
+GET /api/v1/dashboards/{dashboard_id}/filter-sets >> Get Dashboard Filter Sets
+POST /api/v1/dashboards/{dashboard_id}/filter-sets >> Create Dashboard Filter Set
+PUT /api/v1/dashboards/{dashboard_id}/filter-sets/{filter_set_id} >> Update Dashboard Filter Set
+DELETE /api/v1/dashboards/{dashboard_id}/filter-sets/{filter_set_id} >> Delete Dashboard Filter Set
+GET /api/v1/users >> List Users
+POST /api/v1/users >> Create User
+GET /api/v1/users/me >> Get Current User Profile
+PUT /api/v1/users/me >> Update Current User Profile
+POST /api/v1/users/me/change-password >> Change Password
+GET /api/v1/users/search >> Search Users
+GET /api/v1/users/{user_id} >> Get User
+PUT /api/v1/users/{user_id} >> Update User
+DELETE /api/v1/users/{user_id} >> Delete User
+POST /api/v1/users/{user_id}/reset-password >> Reset User Password
+GET /api/v1/feature-flags/ >> Get Feature Flags
+POST /api/v1/feature-flags/ >> Create Feature Flag
+GET /api/v1/feature-flags/user-flags >> Get User Feature Flags
+GET /api/v1/feature-flags/{flag_name} >> Get Feature Flag
+PUT /api/v1/feature-flags/{flag_name} >> Update Feature Flag
+DELETE /api/v1/feature-flags/{flag_name} >> Delete Feature Flag
+GET /api/v1/feature-flags/check/{flag_name} >> Check Feature Flag
+GET /api/v1/parameters/ >> List Parameters
+POST /api/v1/parameters/ >> Create Parameter
+GET /api/v1/parameters/global >> List Global Parameters
+GET /api/v1/parameters/datasource/{datasource_id} >> List Datasource Parameters
+GET /api/v1/parameters/{parameter_id} >> Get Parameter
+PUT /api/v1/parameters/{parameter_id} >> Update Parameter
+DELETE /api/v1/parameters/{parameter_id} >> Delete Parameter
+GET /api/v1/parameters/{parameter_id}/usages >> Get Parameter Usages
+POST /api/v1/parameters/{parameter_id}/validate >> Validate Parameter Value
+POST /api/v1/parameters/runtime-value >> Set Runtime Value
+GET /api/v1/parameters/runtime-values >> Get Runtime Values
+DELETE /api/v1/parameters/runtime-value/{runtime_value_id} >> Delete Runtime Value
+POST /api/v1/parameters/replace >> Replace Parameters
+POST /api/v1/ai-assistant/chat >> Chat with AI Assistant
+POST /api/v1/ai-assistant/attach-context >> Attach context to conversation
+GET /api/v1/ai-assistant/contexts >> Get available contexts
+POST /api/v1/ai-assistant/generate-insights >> Generate context insights
+GET /api/v1/ai-assistant/health >> Health check
+GET /api/v1/ai-assistant/history >> Get conversation history
+GET /api/v1/ai-assistant/conversation/{conversation_id} >> Get conversation with messages
+DELETE /api/v1/ai-assistant/conversation/{conversation_id} >> Delete conversation
+GET /api/v1/analytics-expert/health >> Health Check
+POST /api/v1/analytics-expert/chat >> Chat with Analytics Expert
+GET /api/v1/analytics-expert/status >> Get Analytics Expert Status
+POST /api/v1/analytics-expert/suggestions >> Get Smart Suggestions
+GET /api/v1/analytics-expert/conversations >> Get Conversations
+GET /api/v1/analytics-expert/conversations/{conversation_id} >> Get Conversation with Messages
+POST /api/v1/analytics-expert/conversations/upload >> Upload Conversations (Migration)
+GET /api/v1/analytics-expert/analytics >> Get Conversation Analytics
+POST /api/v1/analytics/feedback/submit >> Submit Feedback
+GET /api/v1/analytics/feedback/stats >> Get Learning Stats
+POST /api/v1/analytics/feedback/interaction-outcome >> Record Interaction Outcome
+POST /api/v1/alerts/rules >> Create Alert Rule
+GET /api/v1/alerts/rules >> List Alert Rules
+GET /api/v1/alerts/rules/{rule_id} >> Get Alert Rule
+PATCH /api/v1/alerts/rules/{rule_id} >> Update Alert Rule
+DELETE /api/v1/alerts/rules/{rule_id} >> Delete Alert Rule
+POST /api/v1/alerts/rules/{rule_id}/toggle >> Toggle Alert Rule
+GET /api/v1/alerts/history >> Get Alert History
+GET /api/v1/alerts/history/{history_id} >> Get Alert Details
+POST /api/v1/alerts/history/{history_id}/resolve >> Resolve Alert
+POST /api/v1/alerts/history/{history_id}/feedback >> Provide Alert Feedback
+POST /api/v1/alerts/check >> Check All Rules
+POST /api/v1/sharing/{content_type}/{content_id}/share >> Share Content
+GET /api/v1/sharing/{content_type}/{content_id}/shares >> Get Content Shares
+DELETE /api/v1/sharing/{content_type}/{content_id}/shares >> Remove All Shares
+DELETE /api/v1/sharing/{content_type}/{content_id}/share/{share_id} >> Remove Share
+GET /api/v1/audit/audit >> List Audit Logs
+GET /api/v1/audit/audit/actions >> List Audit Actions
+GET /api/v1/audit/audit/user/{user_id} >> Get User Audit Logs
+GET /api/v1/groups >> List Groups
+POST /api/v1/groups >> Create Group
+GET /api/v1/groups/{group_id} >> Get Group
+PUT /api/v1/groups/{group_id} >> Update Group
+DELETE /api/v1/groups/{group_id} >> Delete Group
+GET /api/v1/groups/{group_id}/members >> Get Group Members
+POST /api/v1/groups/{group_id}/members >> Add Group Members
+DELETE /api/v1/groups/{group_id}/members/{user_id} >> Remove Group Member
+GET /api/v1/groups/user/{user_id}/groups >> Get User Groups
+GET /api/v1/groups/me/groups >> Get My Groups
+GET /api/v1/entity-groups/ >> List Entity Groups
+POST /api/v1/entity-groups/ >> Create Entity Group
+GET /api/v1/entity-groups/{group_id} >> Get Entity Group
+PUT /api/v1/entity-groups/{group_id} >> Update Entity Group
+DELETE /api/v1/entity-groups/{group_id} >> Delete Entity Group
+GET /api/v1/entity-groups/{group_id}/members >> Get Group Members
+POST /api/v1/entity-groups/{group_id}/members >> Add Group Members
+DELETE /api/v1/entity-groups/{group_id}/members/{entity_id} >> Remove Group Member
+POST /api/v1/entity-groups/{group_id}/members/remove >> Remove Group Members Bulk
+GET /api/v1/entity-groups/entity/{entity_type}/{entity_id}/groups >> Get Entity Groups
+PUT /api/v1/entity-groups/entity/{entity_type}/{entity_id}/groups >> Update Entity Groups
+GET /api/v1/reports/{report_id}/saved-filters >> List Saved Filters for Report
+POST /api/v1/reports/{report_id}/saved-filters >> Create Saved Filter
+GET /api/v1/reports/{report_id}/saved-filters/default >> Get Default Saved Filter
+GET /api/v1/reports/{report_id}/saved-filters/{filter_id} >> Get Saved Filter
+PUT /api/v1/reports/{report_id}/saved-filters/{filter_id} >> Update Saved Filter
+DELETE /api/v1/reports/{report_id}/saved-filters/{filter_id} >> Delete Saved Filter
+GET /api/v1/virtual-reports/{virtual_report_id}/saved-filters >> List Saved Filters for Virtual Report
+POST /api/v1/virtual-reports/{virtual_report_id}/saved-filters >> Create Saved Filter for Virtual Report
+GET /api/v1/virtual-reports/{virtual_report_id}/saved-filters/default >> Get Default Saved Filter for Virtual Report
+GET /api/v1/virtual-reports/{virtual_report_id}/saved-filters/{filter_id} >> Get Saved Filter for Virtual Report
+PUT /api/v1/virtual-reports/{virtual_report_id}/saved-filters/{filter_id} >> Update Saved Filter for Virtual Report
+DELETE /api/v1/virtual-reports/{virtual_report_id}/saved-filters/{filter_id} >> Delete Saved Filter for Virtual Report
+POST /api/v1/reports/{report_id}/virtual-reports >> Create Virtual Report
+GET /api/v1/reports/{report_id}/virtual-reports >> List Virtual Reports for Parent
+GET /api/v1/virtual-reports/{id} >> Get Virtual Report
+PUT /api/v1/virtual-reports/{id} >> Update Virtual Report
+DELETE /api/v1/virtual-reports/{id} >> Delete Virtual Report
+POST /api/v1/virtual-reports/{id}/query >> Query Virtual Report Data
+GET /api/v1/virtual-reports/{id}/drill-level >> Query Virtual Report Drill Level
+GET /api/v1/virtual-reports/{id}/grand-totals >> Get Virtual Report Grand Totals
+GET /api/v1/virtual-reports/{id}/columns/{column_name}/unique-values >> Get Unique Column Values for Virtual Report
+GET /api/v1/user/preferences/reports/{report_id} >> Get User Preferences for Report
+POST /api/v1/user/preferences/reports/{report_id} >> Save User Preferences for Report
+DELETE /api/v1/user/preferences/reports/{report_id} >> Delete User Preferences for Report
+GET /api/v1/user/preferences/virtual-reports/{virtual_report_id} >> Get User Preferences for Virtual Report
+POST /api/v1/user/preferences/virtual-reports/{virtual_report_id} >> Save User Preferences for Virtual Report
+DELETE /api/v1/user/preferences/virtual-reports/{virtual_report_id} >> Delete User Preferences for Virtual Report
+GET /api/v1/user/views/reports/{report_id} >> List Saved Views for Report
+POST /api/v1/user/views/reports/{report_id} >> Create Saved View
+GET /api/v1/user/views/reports/{report_id}/{view_id} >> Get Saved View
+PUT /api/v1/user/views/reports/{report_id}/{view_id} >> Update Saved View
+DELETE /api/v1/user/views/reports/{report_id}/{view_id} >> Delete Saved View
+POST /api/v1/user/views/reports/{report_id}/{view_id}/set-default >> Set Default View
+POST /api/v1/user/views/reports/{report_id}/clear-default >> Clear Default View
+POST /api/v1/user/views/reports/{report_id}/{view_id}/copy >> Copy View
+GET /api/v1/user/views/virtual-reports/{virtual_report_id} >> List Saved Views for Virtual Report
+POST /api/v1/user/views/virtual-reports/{virtual_report_id} >> Create Saved View for Virtual Report
+GET /api/v1/user/views/virtual-reports/{virtual_report_id}/{view_id} >> Get Saved View for Virtual Report
+PUT /api/v1/user/views/virtual-reports/{virtual_report_id}/{view_id} >> Update Saved View for Virtual Report
+DELETE /api/v1/user/views/virtual-reports/{virtual_report_id}/{view_id} >> Delete Saved View for Virtual Report
+POST /api/v1/user/views/virtual-reports/{virtual_report_id}/{view_id}/set-default >> Set Default View for Virtual Report
+POST /api/v1/user/views/virtual-reports/{virtual_report_id}/clear-default >> Clear Default View for Virtual Report
+POST /api/v1/user/views/virtual-reports/{virtual_report_id}/{view_id}/copy >> Copy View for Virtual Report
+POST /api/v1/admin/migrate-preferences >> Migrate Preferences to Views (Admin)
+GET /api/v1/datasets/{dataset_id}/measures >> List all measures for a dataset
+POST /api/v1/datasets/{dataset_id}/measures >> Create a new measure
+GET /api/v1/datasets/{dataset_id}/measures/{measure_id} >> Get a single measure
+PUT /api/v1/datasets/{dataset_id}/measures/{measure_id} >> Update a measure
+DELETE /api/v1/datasets/{dataset_id}/measures/{measure_id} >> Delete a measure
+POST /api/v1/datasets/{dataset_id}/measures/{measure_id}/certify >> Certify or uncertify a measure
+POST /api/v1/datasets/{dataset_id}/measures/validate >> Validate a measure configuration
+GET /api/v1/datasets/{dataset_id}/measures/{measure_id}/sql >> Get SQL for a measure
+POST /api/v1/reports/{report_id}/measures/validate >> Validate a runtime measure configuration
+GET /api/v1/reports/{report_id}/measures >> List report measures
+POST /api/v1/reports/{report_id}/measures >> Add report measure
+PUT /api/v1/reports/{report_id}/measures/{measure_id} >> Update report measure
+DELETE /api/v1/reports/{report_id}/measures/{measure_id} >> Delete report measure
+GET /api/v1/virtual-reports/{virtual_report_id}/measures >> List VR measures
+POST /api/v1/virtual-reports/{virtual_report_id}/measures >> Add VR measure
+DELETE /api/v1/virtual-reports/{virtual_report_id}/measures/{measure_id} >> Delete VR measure
+PATCH /api/v1/virtual-reports/{virtual_report_id}/measures/inheritance >> Update inheritance config
+GET /api/v1/reports/{report_id}/user-measures >> Get user measures for report
+PUT /api/v1/reports/{report_id}/user-measures >> Save user measures for report
+POST /api/v1/reports/{report_id}/user-measures >> Add user measure for report
+GET /api/v1/virtual-reports/{virtual_report_id}/user-measures >> Get user measures for VR
+PUT /api/v1/virtual-reports/{virtual_report_id}/user-measures >> Save user measures for VR
+PATCH /api/v1/reports/{report_id}/user-measures/{measure_id} >> Update user measure for report
+DELETE /api/v1/reports/{report_id}/user-measures/{measure_id} >> Delete user measure for report
+GET /api/v1/reports/{report_id}/effective-measures >> Get effective measures
+POST /api/v1/reports/{report_id}/export >> Initiate Report Export
+GET /api/v1/exports/{job_id}/status >> Check Export Status
+GET /api/v1/exports/{job_id}/download >> Download Export File
+GET /api/v1/exports/history >> List Export History
+DELETE /api/v1/exports/{job_id} >> Cancel Export Job
+POST /api/v1/reports/{report_id}/export/preview >> Preview Export
+GET /api/v1/exports/rate-limit >> Get Rate Limit Info
+POST /api/v1/subscriptions >> Create a new subscription
+GET /api/v1/subscriptions >> List user's subscriptions
+GET /api/v1/subscriptions/recipients/search >> Search users and groups for recipient selection
+GET /api/v1/subscriptions/recipients/users >> List users for recipient selection
+GET /api/v1/subscriptions/recipients/groups >> List groups for recipient selection
+GET /api/v1/subscriptions/{subscription_id} >> Get subscription details
+PUT /api/v1/subscriptions/{subscription_id} >> Update a subscription
+DELETE /api/v1/subscriptions/{subscription_id} >> Delete a subscription
+POST /api/v1/subscriptions/{subscription_id}/pause >> Pause a subscription
+POST /api/v1/subscriptions/{subscription_id}/resume >> Resume a paused subscription
+POST /api/v1/subscriptions/{subscription_id}/send-now >> Trigger immediate delivery
+GET /api/v1/subscriptions/{subscription_id}/deliveries >> Get delivery history
+GET /api/v1/subscriptions/content/{content_type}/{content_id} >> Get subscriptions for content
+GET /api/v1/subscriptions/deliveries/{delivery_id}/download >> Download delivery file
+GET /api/v1/subscriptions/external-recipients/pending >> List pending external recipient approvals
+POST /api/v1/subscriptions/external-recipients/{recipient_id}/approve >> Approve or reject an external recipient
+GET /api/v1/subscriptions/admin/all >> List all subscriptions (admin only)
+GET /api/v1/subscriptions/admin/analytics >> Get subscription analytics (admin only)
+POST /api/v1/subscriptions/admin/{subscription_id}/pause >> Admin pause a subscription
+POST /api/v1/subscriptions/admin/{subscription_id}/resume >> Admin resume a subscription
+DELETE /api/v1/subscriptions/admin/{subscription_id} >> Admin delete a subscription
