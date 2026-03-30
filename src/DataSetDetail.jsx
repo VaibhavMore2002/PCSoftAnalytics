@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
 import { useApp } from "./AppContext.jsx";
+import { PageSkeleton } from "./Skeleton.jsx";
 
 /* ═══════════════════════════════════════════════════════════
    SVG helpers
@@ -31,6 +32,8 @@ const ico = {
   copy: "M20 9h-9a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-9a2 2 0 00-2-2zM5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1",
   info: "M12 2a10 10 0 100 20 10 10 0 000-20zM12 16v-4M12 8h.01",
   play: "M5 3l14 9-14 9V3z",
+  download: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
+  share: "M18 8A3 3 0 1 0 18 2A3 3 0 1 0 18 8zM6 15A3 3 0 1 0 6 9A3 3 0 1 0 6 15zM18 22A3 3 0 1 0 18 16A3 3 0 1 0 18 22zM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98",
 };
 
 const Spin = () => (
@@ -133,6 +136,7 @@ export default function DataSetDetail() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [materializing, setMaterializing] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const [tab, setTab] = useState("overview");
   const [allTables, setAllTables] = useState([]);
   const [syncStats, setSyncStats] = useState(null);
@@ -186,11 +190,64 @@ export default function DataSetDetail() {
   const handleMaterialize = async () => {
     setMaterializing(true);
     try {
-      await api(`/api/v1/datasets/${id}/materialize`, { method: "POST", body: JSON.stringify({}) });
+      await api(`/api/v1/datasets/${id}/sync`, { method: "POST", body: JSON.stringify({}) });
       push("Materialization started");
       fetchDataset();
     } catch { push("Materialization failed", "error"); }
     setMaterializing(false);
+  };
+
+  const handleDuplicate = async () => {
+    setDuplicating(true);
+    try {
+      await api(`/api/v1/datasets/${id}/duplicate`, { method: "POST" });
+      push(`"${ds.name}" duplicated`);
+      navigate("/datasets");
+    } catch { push("Duplicate failed", "error"); }
+    setDuplicating(false);
+  };
+
+  const handleExport = async () => {
+    if (!ds.last_sync_status || ds.last_sync_status !== "success") {
+      push("Cannot export data. Dataset has no recent materialization.", "error");
+      return;
+    }
+    push(`Preparing export for "${ds.name}"...`);
+    try {
+      const resp = await api(`/api/v1/datasets/${ds.id}/data?limit=100000`);
+      const rows = resp.data || [];
+      if (rows.length === 0) {
+        push("No data to export.", "error");
+        return;
+      }
+      const headers = Object.keys(rows[0]);
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => headers.map(h => JSON.stringify(row[h] ?? "")).join(","))
+      ].join("\n");
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${ds.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      push(`Export complete`);
+    } catch {
+      push("Export failed", "error");
+    }
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/datasets/${ds.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      push(`Link for "${ds.name}" copied to clipboard`);
+    } catch (err) {
+      push("Failed to copy link", "error");
+    }
   };
 
   const logo = (
@@ -199,16 +256,7 @@ export default function DataSetDetail() {
     </svg>
   );
 
-  if (loading) {
-    return (
-      <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
-        <Sidebar navItems={navItems} onNavClick={handleNavClick} activeNav={activeNav} logo={logo} />
-        <div className="flex-1 flex items-center justify-center gap-3">
-          <Spin /> <span className="text-sm text-[var(--text-muted)]">Loading dataset…</span>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton />;
 
   if (!ds) {
     return (
@@ -274,6 +322,20 @@ export default function DataSetDetail() {
             <button className={btnS} onClick={handleMaterialize} disabled={materializing}>
               {materializing ? <Spin /> : <I d={ico.materialize} size={14} />} Materialize
             </button>
+            <div className="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button className={btnS} onClick={handleDuplicate} title="Duplicate" disabled={duplicating}>
+              {duplicating ? <Spin /> : <I d={ico.copy} size={14} />} 
+              <span className="sr-only sm:not-sr-only ml-1">Duplicate</span>
+            </button>
+            <button className={btnS} onClick={handleExport} title="Export">
+              <I d={ico.download} size={14} />
+              <span className="sr-only sm:not-sr-only ml-1">Export</span>
+            </button>
+            <button className={btnS} onClick={handleShare} title="Share">
+              <I d={ico.share} size={14} />
+              <span className="sr-only sm:not-sr-only ml-1">Share</span>
+            </button>
+            <div className="w-px h-6 bg-[var(--border)] mx-1"></div>
             <button className={btnP} style={{ background: "var(--nav-active-bg)" }}
               onClick={() => navigate(`/datasets/${id}/edit`)}>
               <I d={ico.edit} size={14} color="#fff" /> Edit

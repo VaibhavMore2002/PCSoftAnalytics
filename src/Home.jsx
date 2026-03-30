@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
 import { useTheme } from "./ThemeContext.jsx";
 import { useApp } from "./AppContext.jsx";
+import { Sk, StatRowSkeleton } from "./Skeleton.jsx";
 
 // ── Stripe accent colors per theme ─────────────────────────
 const STRIPES = {
@@ -758,6 +759,7 @@ export default function PCSoftAnalytics() {
                 {/* Quick stats strip */}
                 <div style={{ display: "flex", borderTop: "1px solid var(--border)", background: "var(--bg-input)" }}>
                   {[
+
                     { label: "Widgets",       val: widgetCount ?? "—" },
                     { label: "Columns",        val: an ? an.columnTotal : "…" },
                     { label: "Active Filters", val: an ? an.activeFilters : "…" },
@@ -786,66 +788,82 @@ export default function PCSoftAnalytics() {
           {/* ── Stat Cards ──────────────────────────── */}
           <div>
             <SectionLabel>Overview</SectionLabel>
-            <div className="grid grid-cols-4 gap-3.5">
-              {STAT_CONFIG.map((s, i) => {
-                const baseVals = liveStats
-                  ? [liveStats.sources, liveStats.dashboards, liveStats.reports, liveStats.datasets]
-                  : [null, null, null, null];
-                // When a specific dashboard is selected, override the dashboards count to 1
-                // and show that dashboard's widget count in place of datasets
-                const rawVal = dashboardFilter
-                  ? i === 1
-                    ? 1
-                    : i === 3
-                      ? (selectedDashDetail?.widgets != null
-                          ? (Array.isArray(selectedDashDetail.widgets)
-                              ? selectedDashDetail.widgets.length
-                              : selectedDashDetail.widgets)
-                          : baseVals[i])
-                      : baseVals[i]
-                  : baseVals[i];
-                const color = S[s.stripe];
-                return (
-                  <div
-                    key={s.label}
-                    className="stat-card fade-up rounded-xl relative p-[18px_20px] bg-[var(--bg-card)] border border-[var(--border)] [box-shadow:var(--shadow)]"
-                    style={{ borderLeft: `3px solid ${color}`, animationDelay: `${0.05 + i * 0.07}s` }}
-                  >
-                    {/* Icon */}
-                    <div
-                      className="flex items-center justify-center mb-3.5 rounded-lg w-[34px] h-[34px]"
-                      style={{ background: `${color}1a`, border: `1px solid ${color}30` }}
-                    >
-                      <Icon name={s.icon} size={15} color={color} />
-                    </div>
-                    {/* Label */}
-                    <div className="text-[0.68rem] font-medium tracking-[0.03em] mb-[5px] text-[var(--text-muted)]">
-                      {i === 3 && dashboardFilter && selectedDashDetail?.widgets != null
-                        ? "Widgets"
-                        : s.label}
-                    </div>
-                    {/* Value */}
-                    <div className="text-[1.85rem] font-bold leading-none tracking-[-0.02em] mb-[10px] text-[var(--text)]">
-                      {rawVal == null
-                        ? <span className="text-[1.4rem] text-[var(--text-muted)]">—</span>
-                        : <AnimatedNumber target={rawVal} />}
-                    </div>
-                    {/* Subtitle */}
-                    <div className="flex items-center gap-[5px]">
-                      <span className="text-[0.65rem] text-[var(--text-muted)]">
-                        {rawVal == null
-                          ? "Loading…"
-                          : i === 1 && dashboardFilter
-                            ? "selected"
-                            : i === 3 && dashboardFilter && selectedDashDetail?.widgets != null
-                              ? "in this dashboard"
-                              : "total in system"}
-                      </span>
-                    </div>
+            {liveStats === null ? (
+
+              /* ── Skeleton: 4 stat cards ── */
+              <div className="grid grid-cols-4 gap-3.5">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="rounded-xl p-[18px_20px] bg-[var(--bg-card)] border border-[var(--border)] flex flex-col gap-3"
+                    style={{ borderLeft: "3px solid var(--border)", animationDelay: `${i * 0.07}s` }}>
+                    <Sk w={38} h={38} r={9} />
+                    <Sk w="55%" h={10} />
+                    <Sk w={70} h={28} r={6} />
+                    <Sk w="40%" h={9} />
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-3.5">
+                {STAT_CONFIG.map((s, i) => {
+                  const baseVals = liveStats
+                    ? [liveStats.sources, liveStats.dashboards, liveStats.reports, liveStats.datasets]
+                    : [null, null, null, null];
+                  // When a specific dashboard is selected, override the dashboards count to 1
+                  // and show that dashboard's widget count in place of datasets
+                  const rawVal = dashboardFilter
+                    ? i === 1
+                      ? 1
+                      : i === 3
+                        ? (selectedDashDetail?.widgets != null
+                            ? (Array.isArray(selectedDashDetail.widgets)
+                                ? selectedDashDetail.widgets.length
+                                : selectedDashDetail.widgets)
+                            : baseVals[i])
+                        : baseVals[i]
+                    : baseVals[i];
+                  const color = S[s.stripe];
+                  return (
+                    <div
+                      key={s.label}
+                      className="stat-card fade-up rounded-xl relative p-[18px_20px] bg-[var(--bg-card)] border border-[var(--border)] [box-shadow:var(--shadow)]"
+                      style={{ borderLeft: `3px solid ${color}`, animationDelay: `${0.05 + i * 0.07}s` }}
+                    >
+                      {/* Icon */}
+                      <div
+                        className="flex items-center justify-center mb-3.5 rounded-lg w-[34px] h-[34px]"
+                        style={{ background: `${color}1a`, border: `1px solid ${color}30` }}
+                      >
+                        <Icon name={s.icon} size={15} color={color} />
+                      </div>
+                      {/* Label */}
+                      <div className="text-[0.68rem] font-medium tracking-[0.03em] mb-[5px] text-[var(--text-muted)]">
+                        {i === 3 && dashboardFilter && selectedDashDetail?.widgets != null
+                          ? "Widgets"
+                          : s.label}
+                      </div>
+                      {/* Value */}
+                      <div className="text-[1.85rem] font-bold leading-none tracking-[-0.02em] mb-[10px] text-[var(--text)]">
+                        {rawVal == null
+                          ? <span className="text-[1.4rem] text-[var(--text-muted)]">—</span>
+                          : <AnimatedNumber target={rawVal} />}
+                      </div>
+                      {/* Subtitle */}
+                      <div className="flex items-center gap-[5px]">
+                        <span className="text-[0.65rem] text-[var(--text-muted)]">
+                          {rawVal == null
+                            ? "Loading…"
+                            : i === 1 && dashboardFilter
+                              ? "selected"
+                              : i === 3 && dashboardFilter && selectedDashDetail?.widgets != null
+                                ? "in this dashboard"
+                                : "total in system"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* ── Quick Actions ──────────────────────── */}

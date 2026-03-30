@@ -1,14 +1,19 @@
-const fs = require('fs');
-let content = fs.readFileSync('src/QuestionDetail.jsx', 'utf8');
+const fs = require("fs");
+let content = fs.readFileSync("src/QuestionDetail.jsx", "utf8");
 
-if (!content.includes('react-apexcharts')) {
-  content = content.replace(/import \{/, "import Chart from 'react-apexcharts';\nimport {");
+if (!content.includes("react-apexcharts")) {
+  content = content.replace(
+    /import \{/,
+    "import Chart from 'react-apexcharts';\nimport {",
+  );
 }
 
-let start = content.indexOf('/* ── Modern Tooltip ── */');
-if (start === -1) start = content.indexOf('/* ── Chart renderer ── */');
+let start = content.indexOf("/* ── Modern Tooltip ── */");
+if (start === -1) start = content.indexOf("/* ── Chart renderer ── */");
 
-const end = content.indexOf('/* ─────────────────────────────────────────────────────────── */');
+const end = content.indexOf(
+  "/* ─────────────────────────────────────────────────────────── */",
+);
 
 const newComponent = `/* ── Apex Chart renderer ── */
 function ChartRenderer({ chartType, data, height = 340, questionName = "" }) {  
@@ -226,14 +231,17 @@ function ChartRenderer({ chartType, data, height = 340, questionName = "" }) {
 \n\n`;
 
 content = content.substring(0, start) + newComponent + content.substring(end);
-fs.writeFileSync('src/QuestionDetail.jsx', content);
-console.log('ApexCharts wrapper injected successfully into QuestionDetail.');
+fs.writeFileSync("src/QuestionDetail.jsx", content);
+console.log("ApexCharts wrapper injected successfully into QuestionDetail.");
 
 // Now let's patch DashboardAnalytics.jsx
-let analitics = fs.readFileSync('src/DashboardAnalytics.jsx', 'utf8');
-if (!analitics.includes('react-apexcharts')) {
-  analitics = analitics.replace(/import \{/, "import Chart from 'react-apexcharts';\nimport {");
+let analitics = fs.readFileSync("src/DashboardAnalytics.jsx", "utf8");
+if (!analitics.includes("react-apexcharts")) {
+  analitics = analitics.replace(
+    /import \{/,
+    "import Chart from 'react-apexcharts';\nimport {",
+  );
 }
-// We shouldn't rewrite everything in DashboardAnalytics blindly without understanding it, 
+// We shouldn't rewrite everything in DashboardAnalytics blindly without understanding it,
 // so we'll just write our file.
-fs.writeFileSync('src/DashboardAnalytics.jsx', analitics);
+fs.writeFileSync("src/DashboardAnalytics.jsx", analitics);

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
 import { useTheme } from "./ThemeContext.jsx";
 import { useApp } from "./AppContext.jsx";
+import { Sk, TableSkeleton } from "./Skeleton.jsx";
 
 const STATUS_TABS = ["All", "Active", "Draft", "Archived"];
 
@@ -399,11 +400,12 @@ export default function DashboardsPage() {
             style={{ animationDelay: "0.05s" }}
           >
             {loading ? (
-              <div className="flex items-center justify-center py-20 gap-3">
-                <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--nav-active)" strokeWidth="2.5">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                </svg>
-                <span className="text-[0.80rem] text-[var(--text-muted)]">Loading dashboards…</span>
+              <div className="p-5">
+                {/* Tab skeleton */}
+                <div className="flex items-center gap-3 mb-4">
+                  {[70, 70, 70, 80].map((w, i) => <Sk key={i} w={w} h={28} r={8} />)}
+                </div>
+                <TableSkeleton rows={9} cols={8} />
               </div>
             ) : (
             <table className="w-full border-collapse min-w-[880px]">

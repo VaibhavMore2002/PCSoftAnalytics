@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
 import { useApp } from "./AppContext.jsx";
+import { Sk, ListSkeleton } from "./Skeleton.jsx";
 
 /* ═══════════════════════════════════════════════════════════
    SVG helpers & shared UI
@@ -351,8 +352,11 @@ export default function Reports() {
         {/* ── Content ── */}
         <main className="flex-1 overflow-auto">
           {loading ? (
-            <div className="flex items-center justify-center gap-3 py-20">
-              <Spin /> <span className="text-sm text-[var(--text-muted)]">Loading reports...</span>
+            <div className="px-6 py-4 space-y-3">
+              <div className="flex items-center gap-4 mb-2">
+                {[80, 70, 90, 80].map((w, i) => <Sk key={i} w={w} h={28} r={20} />)}
+              </div>
+              <ListSkeleton rows={8} />
             </div>
           ) : filtered.length === 0 ? (
             <EmptyState

@@ -17,6 +17,7 @@ import Reports from "./Reports.jsx";
 import Questions from "./Questions.jsx";
 import QuestionDetail from "./QuestionDetail.jsx";
 import QuestionCreate from "./qc.jsx";
+import ReportDetail from "./ReportDetail.jsx";
 import { ThemeProvider } from "./ThemeContext.jsx";
 import { AppProvider } from "./AppContext.jsx";
 import { AuthProvider, useAuth } from "./AuthContext.jsx";
@@ -48,6 +49,7 @@ function ProtectedRoutes() {
         <Route path="/questions/new" element={<QuestionCreate />} />
         <Route path="/questions/:id" element={<QuestionDetail />} />
         <Route path="/questions/:id/edit" element={<QuestionCreate />} />
+        <Route path="/reports/:id" element={<ReportDetail />} />
       </Routes>
     </AppProvider>
   );
